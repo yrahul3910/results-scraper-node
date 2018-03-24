@@ -1,4 +1,5 @@
-﻿import React from "react";
+﻿/* eslint-disable no-undef */
+import React from "react";
 import SideMenu from "./SideMenu.jsx";
 import IndividualTable from "./IndividualTable.jsx";
 
@@ -43,9 +44,9 @@ class Individual extends React.Component {
                 <SideMenu />
                 <h3 className="text-center">Individual Results</h3>
                 <div className="row" style={{ marginTop: "15px" }}>
-                    <div className="input-group col-md-4 col-md-offset-4">                        
+                    <div className="input-group col-md-4 col-md-offset-4">
                         <span className="input-group-addon">1PE</span>
-                        <input id="individualUsn" type="text" class="form-control" placeholder="USN" />
+                        <input id="individualUsn" type="text" className="form-control" placeholder="USN" />
                     </div>
                 </div>
                 <div className="row" style={{ marginTop: "15px" }}>

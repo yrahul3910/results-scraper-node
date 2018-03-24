@@ -1,4 +1,5 @@
-﻿import React from "react";
+﻿/* eslint-disable no-undef */
+import React from "react";
 import _ from "lodash";
 import PropTypes from "prop-types";
 import SideMenu from "./SideMenu.jsx";
@@ -51,11 +52,10 @@ class Batch extends React.Component {
         let chartsDivs;
         let failedDiv;
         if (subResults) {
-            console.log(subResults);
             let chartsData = [];
             for (let i = 0; i < subResults[0].length; ++i) {
                 let curSubGradeCounts = _.countBy(subResults, val => {
-                    if (val[i].result == 'A')
+                    if (val[i].result == "A")
                         return "AB";
                     return this.getGrade(val[i].externalMarks);
                 });
@@ -81,7 +81,7 @@ class Batch extends React.Component {
             );
 
             chartsDivs = chartsData.map((dataMap, index) => {
-                let grades = ["S+", "S", "A", "B", "C", "D", "E", "F", "AB"]
+                let grades = ["S+", "S", "A", "B", "C", "D", "E", "F", "AB"];
                 let keys = Object.keys(chartsData[index]);
                 let missingKeys = _.difference(grades, keys);
 

@@ -107,16 +107,56 @@ const getResult = (postKey, usn, year, dept) => {
             }
         );
     });
-
 };
+
+app.post("/api/Results/Individual", (req, res) => {
+    res.writeHead(200, {"Content-Type": "application/json"});
+
+    getPostKey().then(key => {
+        let {startUSN, year, department} = req.body;
+        getResult(key, startUSN, year, department).then(result => {
+            res.end(JSON.stringify(result));
+        });
+    });
+});
+
+app.post("/api/Results/Batch", (req, res) => {
+    res.writeHead(200, {"Content-Type": "application/json"});
+
+    getPostKey().then(key => {
+        let start = req.body.startUSN;
+        let end = req.body.endUSN;
+        let {year, department} = req.body;
+        let failed = [];
+
+        let promises = [];
+        for (let i = start; i <= end; ++i) {
+            promises.push(getResult(key, i, year, department));
+        }
+        Promise.all(promises)
+            .then(results => {
+                // If some error occurred, gpa = 0.
+                failed = results.filter(val => {
+                    return val.gpa == 0;
+                }).map(val => Number.parseInt(val.usn.substr(val.usn.length - 3)));
+
+                results = results.filter(val => {
+                    return val.gpa != 0;
+                });
+
+                let finalResult = {
+                    results,
+                    failedResults: failed
+                };
+
+                res.end(JSON.stringify(finalResult));
+            });
+
+
+    });
+});
 
 app.listen(port, (err) => {
     if (err) throw err;
-    //open("http://localhost:" + port);
-
-    getPostKey().then(key => {
-        getResult(key, 117, 15, "CS").then(res => {
-            console.log(res);
-        });
-    });
+    open("http://localhost:" + port);
 });
