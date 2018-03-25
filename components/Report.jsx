@@ -10,7 +10,6 @@ class Report extends React.Component {
             let subjectResults = val.subjectResults.map((sub, j) =>
                 <td key={j}>{sub.externalMarks}</td>
             );
-            console.log(val);
             return (
                 <tr key={i}>
                     <td>{val.usn}</td>
@@ -21,16 +20,19 @@ class Report extends React.Component {
             );
         });
 
-        let subjectList = resultList.map((res, i) => {
-            if (res.subjectResults.credits == 3)
-                return <p key={i}><strong>ELECTIVE</strong></p>;
+        let subjectList = resultList[0].subjectResults.map((res, i) => {
+            if (res.credits == 3)
+                return <p key={i}>
+                    <strong>{res.subjectCode.substr(0, res.subjectCode.length - 1) + "x: "}</strong>ELECTIVE
+                </p>;
             else
-                return <p key={i}><strong>{res.subjectResults.subjectName}</strong></p>;
+                return <p key={i}><strong>{res.subjectCode + ": "}</strong>{res.subjectName}</p>;
         });
 
         return (
             <div className="container-fluid">
                 <div className="row">
+                    <h3>Subject List:</h3>
                     {subjectList}
                 </div>
                 <div className="row">
