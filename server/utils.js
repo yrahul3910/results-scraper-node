@@ -54,11 +54,13 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
 
                             const $ = cheerio.load(body);
                             const name = $("td").eq(3).text().substr(2);
-                            const tableNode = $("div.divTableBody").first().find("div.divTableRow");
-                            console.log(tableNode.children().length);
+                            let tableNode = $("div.divTableBody").first().find("div.divTableRow");
+                            tableNode = tableNode.filter((i, el) => {
+                                return el.tagName != "text";
+                            });
 
                             let subjectResults = [];
-                            for (let i = 1; i < 9; ++i) {
+                            for (let i = 1; i < tableNode.length; ++i) {
                                 let row = tableNode.eq(i);
                                 let cells = row.children().filter((i, el) => {
                                     return el.tagName != "text";
