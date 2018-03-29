@@ -40,7 +40,8 @@ app.post("/api/Results/Individual", (req, res) => {
     let {startUSN, year, department, semester} = req.body;
 
     getPostKey().then(key => {
-        getResult(key, startUSN, year, department, semester).then((result) => {
+        getResult(key, startUSN.toString(), year.toString(), department.toLowerCase(),
+            semester).then((result) => {
             if (result.gpa == 0) {
                 res.status(400);
                 res.end();
@@ -63,12 +64,13 @@ app.post("/api/Results/Batch", (req, res) => {
     getPostKey().then(key => {
         let start = req.body.startUSN;
         let end = req.body.endUSN;
-        let {year, department} = req.body;
+        let {year, department, semester} = req.body;
         let failed = [];
 
         let promises = [];
         for (let i = start; i <= end; ++i) {
-            promises.push(getResult(key, i, year, department));
+            promises.push(getResult(key, i.toString(), year.toString(), department.toLowerCase(),
+                semester));
         }
         Promise.all(promises)
             .then(results => {

@@ -28,14 +28,19 @@ class Batch extends React.Component {
         let startUsn = $("#startUsn").val();
         let endUsn = $("#endUsn").val();
 
+        let regex = /(\d+)([A-Za-z]+)(\d+)/g;
+        let matches = regex.exec(startUsn);
+        let endMatches = /(\d+)([A-Za-z]+)(\d+)/g.exec(endUsn);
+
         $.ajax({
             method: "POST",
             url: "/api/Results/Batch",
             data: JSON.stringify({
-                year: startUsn.substr(0, 2),
-                department: startUsn.substr(2, 2),
-                startUSN: startUsn.substr(startUsn.length - 3),
-                endUSN: endUsn.substr(endUsn.length - 3)
+                year: matches[1],
+                department: matches[2],
+                startUSN: matches[3],
+                endUSN: endMatches[3],
+                semester: $("#batchSemester").val()
             }),
             contentType: "application/json",
             success: (data) => {
@@ -121,6 +126,21 @@ class Batch extends React.Component {
                             <span className="input-group-addon">1PE</span>
                             <input id="endUsn" type="text" className="form-control" placeholder="USN" />
                         </div>
+                    </div>
+                </div>
+                <div className="row" style={{ marginTop: "15px" }}>
+                    <div className="form-group col-md-4 col-md-offset-4">
+                        <label htmlFor="batchSemester">Semester</label>
+                        <select className="form-control" id="batchSemester" style={{ width: "25%" }}>
+                            <option>1</option>
+                            <option>2</option>
+                            <option>3</option>
+                            <option>4</option>
+                            <option>5</option>
+                            <option>6</option>
+                            <option>7</option>
+                            <option>8</option>
+                        </select>
                     </div>
                 </div>
                 <div className="row" style={{ marginTop: "15px" }}>

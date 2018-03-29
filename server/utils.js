@@ -111,9 +111,9 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
 
                             let dbRecord = {
                                 result,
-                                year,
+                                year: year.toString(),
                                 department: dept.toLowerCase(),
-                                usn,
+                                usn: usn.toString(),
                                 semester: sem
                             };
                             coll.insertOne(dbRecord).then(val => {
