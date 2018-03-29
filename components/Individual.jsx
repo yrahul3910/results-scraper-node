@@ -28,6 +28,7 @@ class Individual extends React.Component {
             contentType: "application/json",
             success: (data) => {
                 this.setState({ results: data });
+                $("#errorMessage").html("");
             },
             error: () => {
                 $("#errorMessage").html("Invalid options. Check USN and semester.");

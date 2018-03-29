@@ -7,8 +7,6 @@ import helmet from "helmet";
 import path from "path";
 import open from "open";
 import { Promise } from "es6-promise";
-import { MongoClient as mongo } from "mongodb";
-
 import { getResult, getPostKey } from "./utils";
 
 // Webpack configuration
@@ -41,53 +39,20 @@ app.get("/*", (req, res) => {
 app.post("/api/Results/Individual", (req, res) => {
     let {startUSN, year, department, semester} = req.body;
 
-    mongo.connect("mongodb://localhost:27017").then((_db) => {
-        let db = _db.db("results");
-
-        let coll = db.collection("results");
-        coll.findOne({
-            year,
-            department,
-            usn: startUSN,
-            semester
-        }, (err, record) => {
-            if (err) throw err;
-
-            if (!record) {
-                getPostKey().then(key => {
-                    getResult(key, startUSN, year, department).then((result) => {
-                        if (result.gpa == 0) {
-                            res.status(400);
-                            res.end();
-                            return;
-                        }
-
-                        res.writeHead(200, {"Content-Type": "application/json"});
-                        res.end(JSON.stringify(result));
-
-                        let dbRecord = {
-                            result,
-                            year,
-                            department: department.toLowerCase(),
-                            usn: startUSN,
-                            semester
-                        };
-                        coll.insertOne(dbRecord).then((val) => {
-                            console.log("Successfully added new record to DB: " + val.insertedId);
-                        }).catch((err) => {
-                            console.error("Failed to add record:");
-                            console.error(err);
-                        });
-                    }).catch(() => {
-                        res.status(500);
-                        res.end();
-                    });
-                });
-            } else {
-                console.log("Using cached result: " + record._id);
-                res.writeHead(200, {"Content-Type": "application/json"});
-                res.end(JSON.stringify(record.result));
+    getPostKey().then(key => {
+        getResult(key, startUSN, year, department, semester).then((result) => {
+            if (result.gpa == 0) {
+                res.status(400);
+                res.end();
+                return;
             }
+
+            res.writeHead(200, {"Content-Type": "application/json"});
+            res.end(JSON.stringify(result));
+        }).catch(() => {
+            res.status(400);
+            res.end();
+            return;
         });
     });
 });
