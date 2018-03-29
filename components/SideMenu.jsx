@@ -13,10 +13,10 @@ class SideMenu extends React.Component {
                             <span className='icon-bar'></span>
                             <span className='icon-bar'></span>
                         </button>
-                        <h2 style={{
+                        <h3 style={{
                             marginTop: "10px", marginBottom: "10px", marginLeft: "5px",
                             color: "red", fontFamily: "'Segoe UI', 'sans-serif'"
-                        }}>PESIT South Campus</h2>
+                        }}>PESIT South Campus</h3>
                     </div>
                     <div className='navbar-collapse collapse'>
                         <ul className='nav navbar-nav'>

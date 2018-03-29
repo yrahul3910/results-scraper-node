@@ -56,13 +56,19 @@ app.post("/api/Results/Individual", (req, res) => {
             if (!record) {
                 getPostKey().then(key => {
                     getResult(key, startUSN, year, department).then((result) => {
+                        if (result.gpa == 0) {
+                            res.status(400);
+                            res.end();
+                            return;
+                        }
+
                         res.writeHead(200, {"Content-Type": "application/json"});
                         res.end(JSON.stringify(result));
 
                         let dbRecord = {
                             result,
                             year,
-                            department,
+                            department: department.toLowerCase(),
                             usn: startUSN,
                             semester
                         };
@@ -79,6 +85,7 @@ app.post("/api/Results/Individual", (req, res) => {
                 });
             } else {
                 console.log("Using cached result: " + record._id);
+                res.writeHead(200, {"Content-Type": "application/json"});
                 res.end(JSON.stringify(record.result));
             }
         });
