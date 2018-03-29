@@ -1,3 +1,4 @@
+// Module imports
 import express from "express";
 import compression from "compression";
 import bodyParser from "body-parser";
@@ -5,19 +6,22 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import path from "path";
 import open from "open";
-import request from "request";
-import cheerio from "cheerio";
-import _ from "lodash";
 import { Promise } from "es6-promise";
+import { MongoClient as mongo } from "mongodb";
 
+import { getResult, getPostKey } from "./utils";
+
+// Webpack configuration
 import webpack from "webpack";
 import config from "../webpack.config";
 
+// Express setup
 const port = 8000;
 const app = express();
 const compiler = webpack(config);
 dotenv.config();
 
+// Middleware setup
 app.use(helmet());
 app.use(compression());
 app.use(bodyParser.json());
@@ -28,94 +32,55 @@ app.use(require("webpack-dev-middleware")(compiler, {
     publicPath: config.output.publicPath
 }));
 
+// Request handling begins here
 app.get("/*", (req, res) => {
     res.sendFile(path.join(__dirname, "../src/index.html"));
 });
 
-const getPostKey = () => {
-    return new Promise((resolve) => {
-        request("http://results.vtu.ac.in/vitaviresultcbcs/index.php", (err, res, html) => {
+// Individual result request
+app.post("/api/Results/Individual", (req, res) => {
+    let {startUSN, year, department, semester} = req.body;
+
+    mongo.connect("mongodb://localhost:27017").then((_db) => {
+        let db = _db.db("results");
+
+        let coll = db.collection("results");
+        coll.findOne({
+            year,
+            department,
+            usn: startUSN,
+            semester
+        }, (err, record) => {
             if (err) throw err;
 
-            const $ = cheerio.load(html);
-            resolve($("input[type='text']").first().attr("name"));
-        });
-    });
-};
+            if (!record) {
+                getPostKey().then(key => {
+                    getResult(key, startUSN, year, department).then((result) => {
+                        res.writeHead(200, {"Content-Type": "application/json"});
+                        res.end(JSON.stringify(result));
 
-const getGrade = (marks) => {
-    if (marks >= 90) return 10;
-    if (marks >= 80) return 9;
-    if (marks >= 70) return 8;
-    if (marks >= 60) return 7;
-    if (marks >= 50) return 6;
-    if (marks >= 45) return 5;
-    if (marks >= 40) return 4;
-    return 0;
-};
-
-const getResult = (postKey, usn, year, dept) => {
-    let postData = {
-        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(3, "0")
-    };
-
-    return new Promise((resolve) => {
-        request.post({url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData},
-            (err, res, body) => {
-                if (err) throw err;
-
-                const $ = cheerio.load(body);
-                const name = $("td").eq(3).text().substr(2);
-                const tableNode = $("div.divTableBody").first().find("div.divTableRow");
-
-                let subjectResults = [];
-                for (let i = 1; i < 9; ++i) {
-                    let row = tableNode.eq(i);
-                    let cells = row.children().filter((i, el) => {
-                        return el.tagName != "text";
+                        let dbRecord = {
+                            result,
+                            year,
+                            department,
+                            usn: startUSN,
+                            semester
+                        };
+                        coll.insertOne(dbRecord).then((val) => {
+                            console.log("Successfully added new record to DB: " + val.insertedId);
+                        }).catch((err) => {
+                            console.error("Failed to add record:");
+                            console.error(err);
+                        });
+                    }).catch(() => {
+                        res.status(500);
+                        res.end();
                     });
-
-                    let subjectCredits;
-                    if (cells.eq(1).text().endsWith("LAB") ||
-                    cells.eq(1).text().includes("LABORATORY"))
-                        subjectCredits = 2;
-                    else if (cells.eq(0).text().length == 7)
-                        subjectCredits = 3;
-                    else subjectCredits = 4;
-
-                    let individualResult = {
-                        subjectCode: cells.first().text(),
-                        subjectName: cells.eq(1).text(),
-                        credits: subjectCredits,
-                        externalMarks: Number.parseInt(cells.eq(4).text()),
-                        passed: (cells.eq(5).text() == "P"),
-                        result: cells.eq(5).text()[0]
-                    };
-                    subjectResults.push(individualResult);
-                }
-
-                let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
-                gpa /= _.sumBy(subjectResults, ob => ob.credits);
-                gpa = Math.round(gpa * 100) / 100;
-
-                resolve({
-                    subjectResults,
-                    gpa,
-                    studentName: name,
-                    usn: "1PE" + year.toString() + dept + usn.toString().padStart(3, "0")
                 });
+            } else {
+                console.log("Using cached result: " + record._id);
+                res.end(JSON.stringify(record.result));
             }
-        );
-    });
-};
-
-app.post("/api/Results/Individual", (req, res) => {
-    res.writeHead(200, {"Content-Type": "application/json"});
-
-    getPostKey().then(key => {
-        let {startUSN, year, department} = req.body;
-        getResult(key, startUSN, year, department).then(result => {
-            res.end(JSON.stringify(result));
         });
     });
 });
@@ -151,8 +116,6 @@ app.post("/api/Results/Batch", (req, res) => {
 
                 res.end(JSON.stringify(finalResult));
             });
-
-
     });
 });
 

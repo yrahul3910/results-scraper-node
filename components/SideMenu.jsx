@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 class SideMenu extends React.Component {
     render() {
@@ -16,18 +16,18 @@ class SideMenu extends React.Component {
                         <h2 style={{
                             marginTop: "10px", marginBottom: "10px", marginLeft: "5px",
                             color: "red", fontFamily: "'Segoe UI', 'sans-serif'"
-                        }}>PES South Campus</h2>
+                        }}>PESIT South Campus</h2>
                     </div>
                     <div className='navbar-collapse collapse'>
                         <ul className='nav navbar-nav'>
                             <li>
-                                <NavLink to={'/'} exact activeClassName='active'>
+                                <NavLink to={"/"} exact activeClassName='active'>
                                     Home
                                 </NavLink>
-                                <NavLink to={'/individual'} exact activeClassName='active'>
+                                <NavLink to={"/individual"} exact activeClassName='active'>
                                     Individual Result
                                 </NavLink>
-                                <NavLink to={'/batch'} exact activeClassName='active'>
+                                <NavLink to={"/batch"} exact activeClassName='active'>
                                     Batch wise result
                                 </NavLink>
                             </li>

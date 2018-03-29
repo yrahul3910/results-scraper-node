@@ -11,17 +11,19 @@ class Individual extends React.Component {
     }
 
     click() {
-        // TODO: Perform validation
-
         let usn = $("#individualUsn").val();
+        let regex = /(\d+)([A-Za-z]+)(\d+)/g;
+        let matches = regex.exec(usn);
+
         $.ajax({
             method: "POST",
             url: "/api/Results/Individual",
             data: JSON.stringify({
-                year: usn.substr(0, 2),
-                department: usn.substr(2, 2),
-                startUSN: usn.substr(usn.length - 3),
-                endUSN: "1"
+                year: matches[1],
+                department: matches[2],
+                startUSN: matches[3],
+                endUSN: "1",
+                semester: $("select").val()
             }),
             contentType: "application/json",
             success: (data) => {
@@ -46,8 +48,23 @@ class Individual extends React.Component {
                 <div className="row" style={{ marginTop: "15px" }}>
                     <div className="input-group col-md-4 col-md-offset-4">
                         <span className="input-group-addon">1PE</span>
-                        <input id="individualUsn" type="text" className="form-control" placeholder="USN" />
+                        <input id="individualUsn" maxLength="7" type="text" className="form-control" placeholder="USN" />
                     </div>
+                </div>
+                <div className="row" style={{ marginTop: "15px" }}>
+                    <h3 className="text-center">Semester</h3>
+                    <p className="text-center" style={{ maxWidth: "25%" }}>Note: This will not check back papers. If this tool has been previously used
+                        to get results, this field is to get those previous results.</p>
+                    <select className="form-control col-md-4 col-md-offset-4" style={{ width: "25%" }}>
+                        <option>1</option>
+                        <option>2</option>
+                        <option>3</option>
+                        <option>4</option>
+                        <option>5</option>
+                        <option>6</option>
+                        <option>7</option>
+                        <option>8</option>
+                    </select>
                 </div>
                 <div className="row" style={{ marginTop: "15px" }}>
                     <div className="col-md-4 col-md-offset-5">
