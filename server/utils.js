@@ -27,8 +27,10 @@ exports.getPostKey = () => {
 };
 
 exports.getResult = (postKey, usn, year, dept, sem) => {
+    // 3 for 1PE, 2 for year 
+    let usnLen = 5 + dept.length;
     let postData = {
-        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(3, "0")
+        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
     };
 
     return new Promise((resolve, reject) => {

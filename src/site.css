@@ -1,5 +1,15 @@
 body {
     font-family: 'Roboto','sans-serif';
+    margin-bottom: 20px;
+}
+
+.credits-footer {
+    position: fixed;
+    height: 20px;
+    width: 100vw;
+    bottom: 0;
+    margin-bottom: 5px;
+    color: blue;
 }
 
 .main-nav li .glyphicon {
