@@ -50,7 +50,7 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                     console.log("Using cached result: " + record._id);
                     resolve(record.result);
                 } else {
-                    request.post({url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData},
+                    request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
                         (err, res, body) => {
                             if (err) throw err;
 
@@ -72,7 +72,7 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                                 let regex = /\d+[A-Z]+(\d+)/g;
                                 let matches = regex.exec(cells.eq(0).text());
                                 if (matches[1][0] != sem.toString()) {
-                                    reject(new Error("Wrong semester"));
+                                    resolve({ error: true, usn });
                                     return;
                                 }
 

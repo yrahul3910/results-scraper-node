@@ -42,7 +42,7 @@ app.post("/api/Results/Individual", (req, res) => {
     getPostKey().then(key => {
         getResult(key, startUSN.toString(), year.toString(), department.toLowerCase(),
             semester).then((result) => {
-            if (result.gpa == 0) {
+            if (result.gpa == 0 || result.error) {
                 res.status(400);
                 res.end();
                 return;
@@ -50,10 +50,6 @@ app.post("/api/Results/Individual", (req, res) => {
 
             res.writeHead(200, {"Content-Type": "application/json"});
             res.end(JSON.stringify(result));
-        }).catch(() => {
-            res.status(400);
-            res.end();
-            return;
         });
     });
 });
@@ -69,18 +65,18 @@ app.post("/api/Results/Batch", (req, res) => {
 
         let promises = [];
         for (let i = start; i <= end; ++i) {
-            promises.push(getResult(key, i.toString(), year.toString(), department.toLowerCase(),
-                semester));
+            promises.push(getResult(key, i.toString().padStart(3, "0"), 
+                year.toString(), department.toLowerCase(), semester));
         }
         Promise.all(promises)
             .then(results => {
                 // If some error occurred, gpa = 0.
                 failed = results.filter(val => {
-                    return val.gpa == 0;
+                    return !(val.gpa) || val.error;
                 }).map(val => Number.parseInt(val.usn.substr(val.usn.length - 3)));
 
                 results = results.filter(val => {
-                    return val.gpa != 0;
+                    return val.gpa && !val.error;
                 });
 
                 let finalResult = {

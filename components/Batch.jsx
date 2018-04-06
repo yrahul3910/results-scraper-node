@@ -71,9 +71,7 @@ class Batch extends React.Component {
             failedDiv = (
                 <div>
                     <p className="text-center" style={{ color: "red" }}>
-                        Scraping failed for USNs: {this.state.results.failedResults.reduce((acc, val) => {
-                            return acc + ", " + val.toString();
-                        }, "")}
+                        Scraping failed for USNs: {this.state.results.failedResults.join(", ")}
                     </p>
                     <div className="row">
                         <div className="col-md-3 col-md-offset-4">
