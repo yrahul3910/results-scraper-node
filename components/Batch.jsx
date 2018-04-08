@@ -5,11 +5,12 @@ import PropTypes from "prop-types";
 import SideMenu from "./SideMenu.jsx";
 import ChartCard from "./ChartCard.jsx";
 import { Link } from "react-router-dom";
+import "../src/progress.css";
 
 class Batch extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { results: null };
+        this.state = { results: null, requestSent: false };
         this.click = this.click.bind(this);
     }
 
@@ -32,6 +33,7 @@ class Batch extends React.Component {
         let matches = regex.exec(startUsn);
         let endMatches = /(\d+)([A-Za-z]+)(\d+)/g.exec(endUsn);
 
+        this.setState({ requestSent: true });
         $.ajax({
             method: "POST",
             url: "/api/Results/Batch",
@@ -100,7 +102,10 @@ class Batch extends React.Component {
                 );
             });
         } else {
-            chartsDivs = <div></div>;
+            // Show a spinning progress bar instead
+            chartsDivs = this.state.requestSent ? 
+                <div style={{ marginLeft: "33.33%" }} className="loader8"></div> : 
+                <div></div>;
             failedDiv = <div></div>;
         }
 
