@@ -72,6 +72,7 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                                 let regex = /\d+[A-Z]+(\d+)/g;
                                 let matches = regex.exec(cells.eq(0).text());
                                 if (matches[1][0] != sem.toString()) {
+                                    console.log("Wrong semester for USN " + usn);
                                     resolve({ error: true, usn });
                                     return;
                                 }
@@ -99,6 +100,12 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                             gpa /= _.sumBy(subjectResults, ob => ob.credits);
                             gpa = Math.round(gpa * 100) / 100;
 
+                            if (isNaN(gpa) || gpa == 0) {
+                                console.log("Result fetch failed for USN " + usn);
+                                resolve({ error: true, usn });
+                                return;
+                            }
+
                             resolve({
                                 subjectResults,
                                 gpa,
@@ -121,7 +128,8 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                                 semester: sem
                             };
                             coll.insertOne(dbRecord).then(val => {
-                                console.log("Successfully added new record to DB: " + val.insertedId);
+                                console.log("Successfully added new record to DB for USN" +
+                                    usn + ": " + val.insertedId);
                             }).catch((err) => {
                                 console.error("Failed to add record:");
                                 console.error(err);

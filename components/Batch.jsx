@@ -33,7 +33,7 @@ class Batch extends React.Component {
         let matches = regex.exec(startUsn);
         let endMatches = /(\d+)([A-Za-z]+)(\d+)/g.exec(endUsn);
 
-        this.setState({ requestSent: true });
+        this.setState({ requestSent: true, results: null });
         $.ajax({
             method: "POST",
             url: "/api/Results/Batch",
@@ -59,52 +59,62 @@ class Batch extends React.Component {
         let chartsDivs;
         let failedDiv;
         if (subResults) {
-            let chartsData = [];
-            for (let i = 0; i < subResults[0].length; ++i) {
-                let curSubGradeCounts = _.countBy(subResults, val => {
-                    if (val[i].result == "A")
-                        return "AB";
-                    return this.getGrade(val[i].externalMarks);
-                });
+            if (subResults.length == 0) {
+                chartsDivs = <div></div>;
+                failedDiv =
+                    <div>
+                        <p className="text-center" style={{ color: "red" }}>
+                            Could not fetch results for any USN in range.
+                        </p>
+                    </div>;
+            } else {
+                let chartsData = [];
+                for (let i = 0; i < subResults[0].length; ++i) {
+                    let curSubGradeCounts = _.countBy(subResults, val => {
+                        if (val[i].result == "A")
+                            return "AB";
+                        return this.getGrade(val[i].externalMarks);
+                    });
 
-                chartsData.push(curSubGradeCounts);
-            }
+                    chartsData.push(curSubGradeCounts);
+                }
 
-            failedDiv = (
-                <div>
-                    <p className="text-center" style={{ color: "red" }}>
-                        Scraping failed for USNs: {this.state.results.failedResults.join(", ")}
-                    </p>
-                    <div className="row">
-                        <div className="col-md-3 col-md-offset-4">
-                            <Link to="/report">
-                                <button className="btn btn-success">Generate Report</button>
-                            </Link>
+                failedDiv = (
+                    <div>
+                        <p className="text-center" style={{ color: "red" }}>
+                            Scraping failed for USNs: {this.state.results.failedResults.join(", ")}
+                        </p>
+                        <div className="row">
+                            <div className="col-md-3 col-md-offset-4">
+                                <Link to="/report">
+                                    <button className="btn btn-success">Generate Report</button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
-                </div>
-            );
-
-            chartsDivs = chartsData.map((dataMap, index) => {
-                let grades = ["S+", "S", "A", "B", "C", "D", "E", "F", "AB"];
-                let keys = Object.keys(chartsData[index]);
-                let missingKeys = _.difference(grades, keys);
-
-                for (let key of missingKeys)
-                    chartsData[index][key] = 0;
-
-                return (
-                    <ChartCard key={index}
-                        title={subResults[0][index].subjectName}
-                        id={subResults[0][index].subjectCode}
-                        chartLabels={grades}
-                        chartFrequencies={grades.map(val => chartsData[index][val])} />
                 );
-            });
+
+                chartsDivs = chartsData.map((dataMap, index) => {
+                    let grades = ["S+", "S", "A", "B", "C", "D", "E", "F", "AB"];
+                    let keys = Object.keys(chartsData[index]);
+                    let missingKeys = _.difference(grades, keys);
+
+                    for (let key of missingKeys)
+                        chartsData[index][key] = 0;
+
+                    return (
+                        <ChartCard key={index}
+                            title={subResults[0][index].subjectName}
+                            id={subResults[0][index].subjectCode}
+                            chartLabels={grades}
+                            chartFrequencies={grades.map(val => chartsData[index][val])} />
+                    );
+                });
+            }
         } else {
             // Show a spinning progress bar instead
-            chartsDivs = this.state.requestSent ? 
-                <div style={{ marginLeft: "33.33%" }} className="loader8"></div> : 
+            chartsDivs = this.state.requestSent ?
+                <div style={{ marginLeft: "33.33%" }} className="loader8"></div> :
                 <div></div>;
             failedDiv = <div></div>;
         }
