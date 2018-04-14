@@ -3,8 +3,58 @@ import request from "request";
 import cheerio from "cheerio";
 import _ from "lodash";
 import { MongoClient as mongo } from "mongodb";
+import { fail } from "assert";
 
-exports.getGrade = (marks) => {
+const scrapeResults = (body, sem, usn) => {
+    try {
+        const $ = cheerio.load(body);
+        const name = $("td").eq(3).text().substr(2);
+        let tableNode = $("div.divTableBody").first().find("div.divTableRow");
+        tableNode = tableNode.filter((i, el) => {
+            return el.tagName != "text";
+        });
+
+        let subjectResults = [];
+        for (let i = 1; i < tableNode.length; ++i) {
+            let row = tableNode.eq(i);
+            let cells = row.children().filter((i, el) => {
+                return el.tagName != "text";
+            });
+
+            // First check that the sem is right
+            let regex = /\d+[A-Z]+(\d+)/g;
+            let matches = regex.exec(cells.eq(0).text());
+            if (matches[1][0] != sem.toString()) {
+                console.log("Wrong semester for USN " + usn);
+                return false;
+            }
+
+            let subjectCredits;
+            if (cells.eq(1).text().endsWith("LAB") ||
+                cells.eq(1).text().includes("LABORATORY"))
+                subjectCredits = 2;
+            else if (cells.eq(0).text().length == 7)
+                subjectCredits = 3;
+            else subjectCredits = 4;
+
+            let individualResult = {
+                subjectCode: cells.first().text(),
+                subjectName: cells.eq(1).text(),
+                credits: subjectCredits,
+                externalMarks: Number.parseInt(cells.eq(4).text()),
+                passed: (cells.eq(5).text() == "P"),
+                result: cells.eq(5).text()[0]
+            };
+            subjectResults.push(individualResult);
+        }
+
+        return subjectResults;
+    } catch (e) {
+        return false;
+    }
+}
+
+const getGrade = (marks) => {
     if (marks >= 90) return 10;
     if (marks >= 80) return 9;
     if (marks >= 70) return 8;
@@ -15,7 +65,7 @@ exports.getGrade = (marks) => {
     return 0;
 };
 
-exports.getPostKey = () => {
+const getPostKey = () => {
     return new Promise((resolve) => {
         request("http://results.vtu.ac.in/vitaviresultcbcs/index.php", (err, res, html) => {
             if (err) throw err;
@@ -26,7 +76,95 @@ exports.getPostKey = () => {
     });
 };
 
-exports.getResult = (postKey, usn, year, dept, sem) => {
+const updateReval = (postKey, start, end, year, dept, sem) => {
+    let usnLen = 5 + dept.length;
+    let postData = {
+        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
+    };
+
+    let success = [];
+    let priorComplete = [];
+    let failed = [];
+
+    mongo.connect("mongodb://localhost:27017", (err, client) => {
+        let db = client.db("results");
+
+        let coll = db.collection("results");
+        for (let i = start; i <= end; ++i) {
+            coll.findOne({
+                year,
+                department: dept,
+                usn: i,
+                semester: sem
+            }, (err, record) => {
+                if (err) throw err;
+
+                if (record) {
+                    if (record.revalUpdated)
+                        priorComplete.push(i);
+                    else {
+                        request.post({
+                            url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
+                            form: postData
+                        }, (err, res, body) => {
+                            if (err) throw err;
+
+                            let subjectResults = scrapeResults(body, sem, i);
+                            if (!subjectResults)
+                                failed.push({
+                                    usn: i,
+                                    reason: "Could not scrape website."
+                                });
+                            else {
+                                let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
+                                gpa /= _.sumBy(subjectResults, ob => ob.credits);
+                                gpa = Math.round(gpa * 100) / 100;
+
+                                if (isNaN(gpa) || gpa == 0)
+                                    failed.push({
+                                        usn: i,
+                                        reason: "Could not compute GPA."
+                                    });
+                                else {
+                                    /* It's successful, so add it to the success array and
+                                    update the database. */
+                                    success.push(i);
+                                    /*coll.updateOne({
+                                        year,
+                                        department: dept,
+                                        usn: i,
+                                        semester: sem
+                                    }, {
+                                        $set: {
+                                            // TODO: Update other values here.
+                                            revalUpdated: true
+                                        }
+                                    }, (err, result) => {
+                                        if (err) throw err;
+            
+                                        console.log("Successfully updated record.");
+                                    });*/
+                                }
+                            }
+                        });
+                    }
+                } else
+                    failed.push({
+                        usn: i,
+                        reason: "Results not cached yet. Please scrape the results first."
+                    });
+            });
+        }
+    });
+
+    return {
+        success,
+        failed,
+        priorComplete
+    };
+}
+
+const getResult = (postKey, usn, year, dept, sem) => {
     // 3 for 1PE, 2 for year 
     let usnLen = 5 + dept.length;
     let postData = {
@@ -54,49 +192,13 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
                         (err, res, body) => {
                             if (err) throw err;
 
-                            const $ = cheerio.load(body);
-                            const name = $("td").eq(3).text().substr(2);
-                            let tableNode = $("div.divTableBody").first().find("div.divTableRow");
-                            tableNode = tableNode.filter((i, el) => {
-                                return el.tagName != "text";
-                            });
-
-                            let subjectResults = [];
-                            for (let i = 1; i < tableNode.length; ++i) {
-                                let row = tableNode.eq(i);
-                                let cells = row.children().filter((i, el) => {
-                                    return el.tagName != "text";
-                                });
-
-                                // First check that the sem is right
-                                let regex = /\d+[A-Z]+(\d+)/g;
-                                let matches = regex.exec(cells.eq(0).text());
-                                if (matches[1][0] != sem.toString()) {
-                                    console.log("Wrong semester for USN " + usn);
-                                    resolve({ error: true, usn });
-                                    return;
-                                }
-
-                                let subjectCredits;
-                                if (cells.eq(1).text().endsWith("LAB") ||
-                                    cells.eq(1).text().includes("LABORATORY"))
-                                    subjectCredits = 2;
-                                else if (cells.eq(0).text().length == 7)
-                                    subjectCredits = 3;
-                                else subjectCredits = 4;
-
-                                let individualResult = {
-                                    subjectCode: cells.first().text(),
-                                    subjectName: cells.eq(1).text(),
-                                    credits: subjectCredits,
-                                    externalMarks: Number.parseInt(cells.eq(4).text()),
-                                    passed: (cells.eq(5).text() == "P"),
-                                    result: cells.eq(5).text()[0]
-                                };
-                                subjectResults.push(individualResult);
+                            let subjectResults = scrapeResults(body, sem, usn);
+                            if (!subjectResults) {
+                                resolve({ error: true, usn });
+                                return;
                             }
 
-                            let gpa = _.sumBy(subjectResults, ob => exports.getGrade(ob.externalMarks) * ob.credits);
+                            let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
                             gpa /= _.sumBy(subjectResults, ob => ob.credits);
                             gpa = Math.round(gpa * 100) / 100;
 
@@ -142,4 +244,4 @@ exports.getResult = (postKey, usn, year, dept, sem) => {
     });
 };
 
-module.exports = exports;
+export { getGrade, getResult };

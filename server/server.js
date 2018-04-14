@@ -89,6 +89,10 @@ app.post("/api/Results/Batch", (req, res) => {
     });
 });
 
+app.post("/api/Results/RevalUpdate", (req, res) => {
+    let { startUSN, endUSN, semester, year, department } = req.body;
+});
+
 app.listen(port, (err) => {
     if (err) throw err;
     open("http://localhost:" + port);

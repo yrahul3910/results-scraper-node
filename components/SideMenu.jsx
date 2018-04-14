@@ -28,7 +28,7 @@ class SideMenu extends React.Component {
                                     Individual Result
                                 </NavLink>
                                 <NavLink to={"/batch"} exact activeClassName='active'>
-                                    Batch wise result
+                                    Batch Result
                                 </NavLink>
                             </li>
                         </ul>

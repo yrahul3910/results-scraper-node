@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/server"
         },
         {
-            "name": "Launch via NPM",
+            "name": "Debug",
             "type": "node",
             "request": "launch",
             "cwd": "${workspaceRoot}",
