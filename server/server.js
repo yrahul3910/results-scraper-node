@@ -7,7 +7,7 @@ import helmet from "helmet";
 import path from "path";
 import open from "open";
 import { Promise } from "es6-promise";
-import { getResult, getPostKey } from "./utils";
+import { getResult, getPostKey, updateReval } from "./utils";
 
 // Webpack configuration
 import webpack from "webpack";
@@ -65,7 +65,7 @@ app.post("/api/Results/Batch", (req, res) => {
 
         let promises = [];
         for (let i = start; i <= end; ++i) {
-            promises.push(getResult(key, i.toString().padStart(3, "0"), 
+            promises.push(getResult(key, i.toString().padStart(5 - department.length, "0"), 
                 year.toString(), department.toLowerCase(), semester));
         }
         Promise.all(promises)
@@ -90,7 +90,30 @@ app.post("/api/Results/Batch", (req, res) => {
 });
 
 app.post("/api/Results/RevalUpdate", (req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
     let { startUSN, endUSN, semester, year, department } = req.body;
+
+    getPostKey().then(key => {
+        let promises = [];
+        for (let i = startUSN; i <= endUSN; ++i) {
+            promises.push(updateReval(key, i.toString().padStart(5 - department.length, "0"),
+                year.toString(), department.toLowerCase(), semester.toString()));
+        }
+        
+        Promise.all(promises).then(values => {
+            let result = {
+                success: [],
+                failed: [],
+                priorComplete: []
+            };
+
+            for (let i = 0; i < values.length; ++i) {
+                result[values[i].status].push(values[i]);
+            }
+
+            res.end(JSON.stringify(result));
+        });
+    });    
 });
 
 app.listen(port, (err) => {
