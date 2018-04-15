@@ -93,73 +93,68 @@ const updateReval = (postKey, usn, year, dept, sem) => {
             }, (err, record) => {
                 if (err) throw err;
 
-                if (record) {
-                    if (record.revalUpdated)
-                        resolve({
-                            status: "priorComplete"
-                        });
-                    else {
-                        request.post({
-                            url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
-                            form: postData
-                        }, (err, res, body) => {
-                            if (err) throw err;
-
-                            let subjectResults = scrapeResults(body, sem, usn, 
-                                cells => Number.parseInt(cells.eq(2).text()) +
-                                    Number.parseInt(cells.eq(4).text())
-                            );
-                            if (!subjectResults)
-                                resolve({
-                                    usn,
-                                    status: "failed",
-                                    reason: "Could not scrape website or wrong sem."
-                                });
-                            else {
-                                let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
-                                gpa /= _.sumBy(subjectResults, ob => ob.credits);
-                                gpa = Math.round(gpa * 100) / 100;
-
-                                if (isNaN(gpa))
-                                    resolve({
-                                        usn,
-                                        status: "failed",
-                                        reason: "Could not compute GPA."
-                                    });
-                                else {
-                                    // It's successful
-                                    
-
-                                    /*coll.updateOne({
-                                        year,
-                                        department: dept,
-                                        usn: i,
-                                        semester: sem
-                                    }, {
-                                        $set: {
-                                            // TODO: Update other values here.
-                                            revalUpdated: true
-                                        }
-                                    }, (err, result) => {
-                                        if (err) throw err;
-            
-                                        console.log("Successfully updated record.");
-                                    });*/
-                                    resolve({
-                                        usn,
-                                        status: "success",
-                                        gpa,
-                                    });
-                                }
-                            }
-                        });
-                    }
-                } else
+                if (!record) {
                     resolve({
                         usn,
                         status: "failed",
                         reason: "Results not cached yet. Please scrape the results first."
                     });
+                    return;
+                }
+
+                if (record.revalUpdated) {
+                    resolve({
+                        status: "priorComplete"
+                    });
+                    return;
+                }
+
+                request.post({
+                    url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
+                    form: postData
+                }, (err, res, body) => {
+                    if (err) throw err;
+
+                    let subjectResults = scrapeResults(body, sem, usn,
+                        cells => Number.parseInt(cells.eq(2).text()) +
+                            Number.parseInt(cells.eq(4).text())
+                    );
+
+                    if (!subjectResults) {
+                        resolve({
+                            usn,
+                            status: "failed",
+                            reason: "Could not scrape website or wrong sem."
+                        });
+                        return;
+                    }
+
+                    // Compute the new GPA
+
+                    // It's successful
+
+                    /*coll.updateOne({
+                        year,
+                        department: dept,
+                        usn: i,
+                        semester: sem
+                    }, {
+                        $set: {
+                            // TODO: Update other values here.
+                            revalUpdated: true
+                        }
+                    }, (err, result) => {
+                        if (err) throw err;
+ 
+                        console.log("Successfully updated record.");
+                    });*/
+
+                    resolve({
+                        usn,
+                        status: "success",
+                        gpa,
+                    });
+                });
             });
         });
     });
