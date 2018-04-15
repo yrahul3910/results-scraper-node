@@ -3,9 +3,10 @@ import request from "request";
 import cheerio from "cheerio";
 import _ from "lodash";
 import { MongoClient as mongo } from "mongodb";
-import { fail } from "assert";
 
-const scrapeResults = (body, sem, usn) => {
+const defaultMarksFunction = cells => Number.parseInt(cells.eq(4).text());
+
+const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
     try {
         const $ = cheerio.load(body);
         const name = $("td").eq(3).text().substr(2);
@@ -24,10 +25,8 @@ const scrapeResults = (body, sem, usn) => {
             // First check that the sem is right
             let regex = /\d+[A-Z]+(\d+)/g;
             let matches = regex.exec(cells.eq(0).text());
-            if (matches[1][0] != sem.toString()) {
-                console.log("Wrong semester for USN " + usn);
+            if (matches[1][0] != sem.toString())
                 return false;
-            }
 
             let subjectCredits;
             if (cells.eq(1).text().endsWith("LAB") ||
@@ -41,7 +40,7 @@ const scrapeResults = (body, sem, usn) => {
                 subjectCode: cells.first().text(),
                 subjectName: cells.eq(1).text(),
                 credits: subjectCredits,
-                externalMarks: Number.parseInt(cells.eq(4).text()),
+                externalMarks: marksFn(cells),
                 passed: (cells.eq(5).text() == "P"),
                 result: cells.eq(5).text()[0]
             };
@@ -76,32 +75,29 @@ const getPostKey = () => {
     });
 };
 
-const updateReval = (postKey, start, end, year, dept, sem) => {
-    let usnLen = 5 + dept.length;
-    let postData = {
-        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
-    };
+const updateReval = (postKey, usn, year, dept, sem) => {
+    return new Promise((resolve, reject) => {
+        mongo.connect("mongodb://localhost:27017", (err, client) => {
+            let db = client.db("results");
 
-    let success = [];
-    let priorComplete = [];
-    let failed = [];
+            let coll = db.collection("results");
+            let postData = {
+                [postKey]: "1PE" + year + dept + usn
+            };
 
-    mongo.connect("mongodb://localhost:27017", (err, client) => {
-        let db = client.db("results");
-
-        let coll = db.collection("results");
-        for (let i = start; i <= end; ++i) {
             coll.findOne({
                 year,
                 department: dept,
-                usn: i,
+                usn,
                 semester: sem
             }, (err, record) => {
                 if (err) throw err;
 
                 if (record) {
                     if (record.revalUpdated)
-                        priorComplete.push(i);
+                        resolve({
+                            status: "priorComplete"
+                        });
                     else {
                         request.post({
                             url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
@@ -109,26 +105,31 @@ const updateReval = (postKey, start, end, year, dept, sem) => {
                         }, (err, res, body) => {
                             if (err) throw err;
 
-                            let subjectResults = scrapeResults(body, sem, i);
+                            let subjectResults = scrapeResults(body, sem, usn, 
+                                cells => Number.parseInt(cells.eq(2).text()) +
+                                    Number.parseInt(cells.eq(4).text())
+                            );
                             if (!subjectResults)
-                                failed.push({
-                                    usn: i,
-                                    reason: "Could not scrape website."
+                                resolve({
+                                    usn,
+                                    status: "failed",
+                                    reason: "Could not scrape website or wrong sem."
                                 });
                             else {
                                 let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
                                 gpa /= _.sumBy(subjectResults, ob => ob.credits);
                                 gpa = Math.round(gpa * 100) / 100;
 
-                                if (isNaN(gpa) || gpa == 0)
-                                    failed.push({
-                                        usn: i,
+                                if (isNaN(gpa))
+                                    resolve({
+                                        usn,
+                                        status: "failed",
                                         reason: "Could not compute GPA."
                                     });
                                 else {
-                                    /* It's successful, so add it to the success array and
-                                    update the database. */
-                                    success.push(i);
+                                    // It's successful
+                                    
+
                                     /*coll.updateOne({
                                         year,
                                         department: dept,
@@ -144,24 +145,25 @@ const updateReval = (postKey, start, end, year, dept, sem) => {
             
                                         console.log("Successfully updated record.");
                                     });*/
+                                    resolve({
+                                        usn,
+                                        status: "success",
+                                        gpa,
+                                    });
                                 }
                             }
                         });
                     }
                 } else
-                    failed.push({
-                        usn: i,
+                    resolve({
+                        usn,
+                        status: "failed",
                         reason: "Results not cached yet. Please scrape the results first."
                     });
             });
-        }
+        });
     });
 
-    return {
-        success,
-        failed,
-        priorComplete
-    };
 }
 
 const getResult = (postKey, usn, year, dept, sem) => {
@@ -244,4 +246,4 @@ const getResult = (postKey, usn, year, dept, sem) => {
     });
 };
 
-export { getGrade, getResult };
+export { getGrade, getResult, updateReval, getPostKey };
