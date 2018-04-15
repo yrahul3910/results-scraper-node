@@ -53,7 +53,7 @@ const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
     }
 }
 
-const getGrade = (marks) => {
+const getGrade = marks => {
     if (marks >= 90) return 10;
     if (marks >= 80) return 9;
     if (marks >= 70) return 8;
@@ -65,7 +65,7 @@ const getGrade = (marks) => {
 };
 
 const getPostKey = () => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         request("http://results.vtu.ac.in/vitaviresultcbcs/index.php", (err, res, html) => {
             if (err) throw err;
 
@@ -76,7 +76,7 @@ const getPostKey = () => {
 };
 
 const updateReval = (postKey, usn, year, dept, sem) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         mongo.connect("mongodb://localhost:27017", (err, client) => {
             let db = client.db("results");
 
@@ -130,29 +130,48 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                     }
 
                     // Compute the new GPA
+                    for (let i = 0; i < record.result.subjectResults.length; ++i) {
+                        let flag = false;
+                        for (let j = 0; j < subjectResults.length; ++j) {
+                            if (record.result.subjectResults[i].subjectCode ==
+                                subjectResults[j].subjectCode) {
 
-                    // It's successful
+                                record.result.subjectResults[i].externalMarks =
+                                    subjectResults[j].externalMarks;
+                                flag = true;
+                            }
+                        }
 
-                    /*coll.updateOne({
+                        if (flag) {
+                            let gpa = _.sumBy(record.result.subjectResults,
+                                ob => getGrade(ob.externalMarks) * ob.credits);
+                            gpa /= _.sumBy(record.result.subjectResults, ob => ob.credits);
+                            record.result.gpa = Math.round(gpa * 100) / 100;
+                        }
+                    }
+                    /*
+                    coll.updateOne({
                         year,
                         department: dept,
-                        usn: i,
+                        usn,
                         semester: sem
                     }, {
-                        $set: {
-                            // TODO: Update other values here.
-                            revalUpdated: true
+                            $set: {
+                                result: record.result,
+                                revalUpdated: true
+                            }
+                        }, (err, result) => {
+                            if (err) throw err;
+
+                            console.log("Successfully updated record.");
                         }
-                    }, (err, result) => {
-                        if (err) throw err;
- 
-                        console.log("Successfully updated record.");
-                    });*/
+                    );*/
 
                     resolve({
                         usn,
                         status: "success",
-                        gpa,
+                        subjectResults,
+                        newResult: record.result
                     });
                 });
             });
