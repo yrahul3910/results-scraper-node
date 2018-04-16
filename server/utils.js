@@ -4,8 +4,21 @@ import cheerio from "cheerio";
 import _ from "lodash";
 import { MongoClient as mongo } from "mongodb";
 
+/**
+ * The default implementation of the marks function used in `scrapeResults`.
+ * @param {Cheerio} cells -- An array of the cells in one row of the results table.
+ */
 const defaultMarksFunction = cells => Number.parseInt(cells.eq(4).text());
 
+/**
+ * Scrapes the results given the HTML of the results page. Optionally takes a function
+ * to compute the external marks given all the cells in one row of the table. This function
+ * is useful for revaluation, since external marks and internal marks must be added.
+ * @param {string} body -- The body of the results page, an HTML string.
+ * @param {string} sem -- A string representation of the semester.
+ * @param {string} usn -- A string representation of the last digits in the USN.
+ * @param {Function} marksFn -- A function to compute the marks given the cells in a row of the table.
+ */
 const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
     try {
         const $ = cheerio.load(body);
@@ -53,6 +66,10 @@ const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
     }
 }
 
+/**
+ * Returns the corresponding grade for the marks given.
+ * @param {number} marks -- The marks to find the grade for.
+ */
 const getGrade = marks => {
     if (marks >= 90) return 10;
     if (marks >= 80) return 9;
@@ -64,6 +81,9 @@ const getGrade = marks => {
     return 0;
 };
 
+/**
+ * Gets the key to send in the POST request while scraping results.
+ */
 const getPostKey = () => {
     return new Promise(resolve => {
         request("http://results.vtu.ac.in/vitaviresultcbcs/index.php", (err, res, html) => {
@@ -75,6 +95,16 @@ const getPostKey = () => {
     });
 };
 
+/**
+ * Checks revaluation results, and updates in the database if necessary.
+ * Returns a Promise, that resolves to an object, with a status and a usn field.
+ * The status field may be one of "success", "failed", or "priorComplete". 
+ * @param {string} postKey -- The key to send with the POST request to fetch results.
+ * @param {string} usn -- The last few digits in the USN, including the initial zeros.
+ * @param {string} year -- A string version of the year part of the USN.
+ * @param {string} dept -- An all-lowercase string of the department in the USN.
+ * @param {string} sem -- A string representation of the semester.
+ */
 const updateReval = (postKey, usn, year, dept, sem) => {
     return new Promise(resolve => {
         mongo.connect("mongodb://localhost:27017", (err, client) => {
@@ -104,6 +134,7 @@ const updateReval = (postKey, usn, year, dept, sem) => {
 
                 if (record.revalUpdated) {
                     resolve({
+                        usn,
                         status: "priorComplete"
                     });
                     return;
@@ -147,9 +178,11 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                                 ob => getGrade(ob.externalMarks) * ob.credits);
                             gpa /= _.sumBy(record.result.subjectResults, ob => ob.credits);
                             record.result.gpa = Math.round(gpa * 100) / 100;
+                            console.log(usn);
+                            console.log(record.result);
                         }
                     }
-                    /*
+                    
                     coll.updateOne({
                         year,
                         department: dept,
@@ -163,15 +196,13 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                         }, (err, result) => {
                             if (err) throw err;
 
-                            console.log("Successfully updated record.");
+                            console.log("Successfully updated record for USN " + usn);
                         }
-                    );*/
+                    );
 
                     resolve({
                         usn,
                         status: "success",
-                        subjectResults,
-                        newResult: record.result
                     });
                 });
             });
@@ -180,6 +211,14 @@ const updateReval = (postKey, usn, year, dept, sem) => {
 
 }
 
+/**
+ * Get the results (not revaluation) for a given USN.
+ * @param {string} postKey -- The key to send with the POST request to fetch results.
+ * @param {string} usn -- The last few digits in the USN, including the initial zeros.
+ * @param {string} year -- A string version of the year part of the USN.
+ * @param {string} dept -- An all-lowercase string of the department in the USN.
+ * @param {string} sem -- A string representation of the semester.
+ */
 const getResult = (postKey, usn, year, dept, sem) => {
     // 3 for 1PE, 2 for year 
     let usnLen = 5 + dept.length;

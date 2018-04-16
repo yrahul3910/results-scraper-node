@@ -35,7 +35,14 @@ app.get("/*", (req, res) => {
     res.sendFile(path.join(__dirname, "../src/index.html"));
 });
 
-// Individual result request
+/**
+ * Individual results
+ * Request body parameters:
+ *  {number} startUSN -- The usn to get results for.
+ *  {number} year -- The year in the usn.
+ *  {string} department -- The department code.
+ *  {number} semester -- The semester to scrape results for.
+ */
 app.post("/api/Results/Individual", (req, res) => {
     let {startUSN, year, department, semester} = req.body;
 
@@ -54,6 +61,15 @@ app.post("/api/Results/Individual", (req, res) => {
     });
 });
 
+/**
+ * Batch results
+ * Request body parameters:
+ *  {number} startUSN -- The starting usn to get results for.
+ *  {number} endUSN -- The ending usn (inclusive) to get results for.
+ *  {number} year -- The year in the usn.
+ *  {string} department -- The department code.
+ *  {number} semester -- The semester to scrape results for.
+ */
 app.post("/api/Results/Batch", (req, res) => {
     res.writeHead(200, {"Content-Type": "application/json"});
 
@@ -89,6 +105,15 @@ app.post("/api/Results/Batch", (req, res) => {
     });
 });
 
+/**
+ * Update database with revaluation results
+ * Request body parameters:
+ *  {number} startUSN -- The starting usn to get results for.
+ *  {number} endUSN -- The ending usn (inclusive) to get results for.
+ *  {number} year -- The year in the usn.
+ *  {string} department -- The department code.
+ *  {number} semester -- The semester to scrape results for.
+ */
 app.post("/api/Results/RevalUpdate", (req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     let { startUSN, endUSN, semester, year, department } = req.body;

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "start": "npm-run-all --parallel server lint:watch",
-    "server": "babel-node server/server.js",
+    "server": "babel-node server/server.js --presets stage-3",
     "security-check": "nsp check",
     "lint": "esw",
     "lint:watch": "npm run lint -- --watch"
