@@ -30,6 +30,9 @@ class SideMenu extends React.Component {
                                 <NavLink to={"/batch"} exact activeClassName='active'>
                                     Batch Result
                                 </NavLink>
+                                <NavLink to={"/update"} exact activeClassName='active'>
+                                    Update Reval Results
+                                </NavLink>
                             </li>
                         </ul>
                     </div>

@@ -3,6 +3,7 @@ import MainPage from "./MainPage.jsx";
 import Individual from "./Individual.jsx";
 import Batch from "./Batch.jsx";
 import Report from "./Report.jsx";
+import UpdateReval from "./UpdateReval.jsx";
 import { Switch, Route } from "react-router-dom";
 import "../src/site.css";
 
@@ -28,6 +29,7 @@ class App extends React.Component {
                 <Route exact path="/report" render={() =>
                     <Report data={this.state.batchResults} />
                 } />
+                <Route exact path="/update" component={UpdateReval} />
             </Switch>
         );
     }

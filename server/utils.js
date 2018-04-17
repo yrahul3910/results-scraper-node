@@ -178,8 +178,6 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                                 ob => getGrade(ob.externalMarks) * ob.credits);
                             gpa /= _.sumBy(record.result.subjectResults, ob => ob.credits);
                             record.result.gpa = Math.round(gpa * 100) / 100;
-                            console.log(usn);
-                            console.log(record.result);
                         }
                     }
                     
