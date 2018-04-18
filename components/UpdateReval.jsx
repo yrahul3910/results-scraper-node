@@ -37,7 +37,7 @@ class UpdateReval extends React.Component {
 
     render() {
         let tableDiv = this.state.updateResult ? (
-            <table className="table table-hover">
+            <table className="table table-hover" style={{marginTop: "15px"}}>
                 <thead>
                     <tr>
                         <th>Status</th>
@@ -59,6 +59,27 @@ class UpdateReval extends React.Component {
                     </tr>
                 </tbody>
             </table>
+        ) : null;
+
+        let failedReasons = this.state.updateResult ? (
+            this.state.updateResult.failed.length ? (
+                <table className="table table-hover" style={{marginTop: "15px"}} >
+                    <thead>
+                        <tr>
+                            <th>USN</th>
+                            <th>Reason for failure to update</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {this.state.updateResult.failed.map(x =>
+                            <tr>
+                                <td>{x.usn}</td>
+                                <td>{x.reason}</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            ) : null
         ) : null;
 
         return (<div style={{ marginLeft: "25%" }}>
@@ -103,6 +124,7 @@ class UpdateReval extends React.Component {
                 </div>
             </div>
             {tableDiv}
+            {failedReasons}
         </div>);
     }
 }
