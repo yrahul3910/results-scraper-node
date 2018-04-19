@@ -241,6 +241,7 @@ const getResult = (postKey, usn, year, dept, sem) => {
 
                 if (record) {
                     console.log("Using cached result: " + record._id);
+                    record.result.usn = "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
                     resolve(record.result);
                 } else {
                     request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
@@ -267,7 +268,7 @@ const getResult = (postKey, usn, year, dept, sem) => {
                                 subjectResults,
                                 gpa,
                                 studentName: name,
-                                usn: "1PE" + year.toString() + dept + usn.toString().padStart(3, "0")
+                                usn: "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
                             });
 
                             let result = {
