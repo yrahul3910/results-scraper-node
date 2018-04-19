@@ -60,7 +60,9 @@ const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
             subjectResults.push(individualResult);
         }
 
-        return subjectResults;
+        return {
+            subjectResults, name
+        };
     } catch (e) {
         return false;
     }
@@ -98,7 +100,7 @@ const getPostKey = () => {
 /**
  * Checks revaluation results, and updates in the database if necessary.
  * Returns a Promise, that resolves to an object, with a status and a usn field.
- * The status field may be one of "success", "failed", or "priorComplete". 
+ * The status field may be one of "success", "failed", or "priorComplete".
  * @param {string} postKey -- The key to send with the POST request to fetch results.
  * @param {string} usn -- The last few digits in the USN, including the initial zeros.
  * @param {string} year -- A string version of the year part of the USN.
@@ -146,7 +148,7 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                 }, (err, res, body) => {
                     if (err) throw err;
 
-                    let subjectResults = scrapeResults(body, sem, usn,
+                    let {subjectResults} = scrapeResults(body, sem, usn,
                         cells => Number.parseInt(cells.eq(2).text()) +
                             Number.parseInt(cells.eq(4).text())
                     );
@@ -180,7 +182,7 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                             record.result.gpa = Math.round(gpa * 100) / 100;
                         }
                     }
-                    
+
                     coll.updateOne({
                         year,
                         department: dept,
@@ -218,7 +220,7 @@ const updateReval = (postKey, usn, year, dept, sem) => {
  * @param {string} sem -- A string representation of the semester.
  */
 const getResult = (postKey, usn, year, dept, sem) => {
-    // 3 for 1PE, 2 for year 
+    // 3 for 1PE, 2 for year
     let usnLen = 5 + dept.length;
     let postData = {
         [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
@@ -245,7 +247,7 @@ const getResult = (postKey, usn, year, dept, sem) => {
                         (err, res, body) => {
                             if (err) throw err;
 
-                            let subjectResults = scrapeResults(body, sem, usn);
+                            let {subjectResults, name} = scrapeResults(body, sem, usn);
                             if (!subjectResults) {
                                 resolve({ error: true, usn });
                                 return;

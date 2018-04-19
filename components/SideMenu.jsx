@@ -37,6 +37,7 @@ class SideMenu extends React.Component {
                         </ul>
                     </div>
                 </div>
+                <p style={{ marginLeft: "3vw"}} className="credits-footer">Built by Rahul Yedida</p>
             </div>
         );
     }
