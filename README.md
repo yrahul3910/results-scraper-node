@@ -1,5 +1,12 @@
 # VTU Results Scraper
-A website to scrape results from VTU, and cache in a database, with support for updating the database with revaluation results. Built with the MERN stack, and uses React-Router v4 and Cheerio.  
+A website to scrape CBCS results from VTU, and cache in a database, with support for updating the database with revaluation results. Built with the MERN stack, and uses React-Router v4 and Cheerio.  
+
+# Features
+* **Cache results**: Results once scraped are stored in a database, and can be fetched later.
+* **Batch results**: Results for multiple students can be scraped at once, with multiple insights for the whole batch result.
+* **Printable report generation**: For batch results, a printable report with each student's results is generated.
+* **Multiple charts in batch results**: In batch mode, pie charts are shown for each subject, showing how many students got each grade. Bar charts are also shown, showing which subject got how many of what grade.
+* **Updating revaluation results**: Once revaluation results are out, they can be scraped in batch, and the database is updated.
 
 # Setup
 To setup this project in your local machine, read this section.
@@ -18,7 +25,8 @@ You must have the following installed and set up.
 # Project Structure
 ## React Components
 * `App`: Contains the routes for React-Router.
-* `Batch`: The component rendered for retrieving results in a batch
+* `BarChartCard`: A card component rendering each bar chart in the batch results mode.
+* `Batch`: The component rendered for retrieving results in a batch.
 * `ChartCard`: A card component which holds a chart and a table. This is used in the `Batch` component.
 * `Individual`: The component rendered for retrieving an individual result.
 * `IndividualTable`: The table displaying the results in the `Individual` component.
