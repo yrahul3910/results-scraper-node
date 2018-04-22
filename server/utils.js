@@ -101,21 +101,17 @@ const getPostKey = () => {
  * Checks revaluation results, and updates in the database if necessary.
  * Returns a Promise, that resolves to an object, with a status and a usn field.
  * The status field may be one of "success", "failed", or "priorComplete".
- * @param {string} postKey -- The key to send with the POST request to fetch results.
  * @param {string} usn -- The last few digits in the USN, including the initial zeros.
  * @param {string} year -- A string version of the year part of the USN.
  * @param {string} dept -- An all-lowercase string of the department in the USN.
  * @param {string} sem -- A string representation of the semester.
  */
-const updateReval = (postKey, usn, year, dept, sem) => {
+const updateReval = (usn, year, dept, sem) => {
     return new Promise(resolve => {
         mongo.connect("mongodb://localhost:27017", (err, client) => {
             let db = client.db("results");
 
             let coll = db.collection("results");
-            let postData = {
-                [postKey]: "1PE" + year + dept + usn
-            };
 
             coll.findOne({
                 year,
@@ -142,67 +138,73 @@ const updateReval = (postKey, usn, year, dept, sem) => {
                     return;
                 }
 
-                request.post({
-                    url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
-                    form: postData
-                }, (err, res, body) => {
-                    if (err) throw err;
+                getPostKey().then(postKey => {
+                    let postData = {
+                        [postKey]: "1PE" + year + dept + usn
+                    };
 
-                    let {subjectResults} = scrapeResults(body, sem, usn,
-                        cells => Number.parseInt(cells.eq(2).text()) +
-                            Number.parseInt(cells.eq(4).text())
-                    );
+                    request.post({
+                        url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
+                        form: postData
+                    }, (err, res, body) => {
+                        if (err) throw err;
 
-                    if (!subjectResults) {
+                        let { subjectResults } = scrapeResults(body, sem, usn,
+                            cells => Number.parseInt(cells.eq(2).text()) +
+                                Number.parseInt(cells.eq(4).text())
+                        );
+
+                        if (!subjectResults) {
+                            resolve({
+                                usn,
+                                status: "failed",
+                                reason: "Could not scrape website or wrong sem."
+                            });
+                            return;
+                        }
+
+                        // Compute the new GPA
+                        for (let i = 0; i < record.result.subjectResults.length; ++i) {
+                            let flag = false;
+                            for (let j = 0; j < subjectResults.length; ++j) {
+                                if (record.result.subjectResults[i].subjectCode ==
+                                    subjectResults[j].subjectCode) {
+
+                                    record.result.subjectResults[i].externalMarks =
+                                        subjectResults[j].externalMarks;
+                                    flag = true;
+                                }
+                            }
+
+                            if (flag) {
+                                let gpa = _.sumBy(record.result.subjectResults,
+                                    ob => getGrade(ob.externalMarks) * ob.credits);
+                                gpa /= _.sumBy(record.result.subjectResults, ob => ob.credits);
+                                record.result.gpa = Math.round(gpa * 100) / 100;
+                            }
+                        }
+
+                        coll.updateOne({
+                            year,
+                            department: dept,
+                            usn,
+                            semester: sem
+                        }, {
+                                $set: {
+                                    result: record.result,
+                                    revalUpdated: true
+                                }
+                            }, (err, result) => {
+                                if (err) throw err;
+
+                                console.log("Successfully updated record for USN " + usn);
+                            }
+                        );
+
                         resolve({
                             usn,
-                            status: "failed",
-                            reason: "Could not scrape website or wrong sem."
+                            status: "success",
                         });
-                        return;
-                    }
-
-                    // Compute the new GPA
-                    for (let i = 0; i < record.result.subjectResults.length; ++i) {
-                        let flag = false;
-                        for (let j = 0; j < subjectResults.length; ++j) {
-                            if (record.result.subjectResults[i].subjectCode ==
-                                subjectResults[j].subjectCode) {
-
-                                record.result.subjectResults[i].externalMarks =
-                                    subjectResults[j].externalMarks;
-                                flag = true;
-                            }
-                        }
-
-                        if (flag) {
-                            let gpa = _.sumBy(record.result.subjectResults,
-                                ob => getGrade(ob.externalMarks) * ob.credits);
-                            gpa /= _.sumBy(record.result.subjectResults, ob => ob.credits);
-                            record.result.gpa = Math.round(gpa * 100) / 100;
-                        }
-                    }
-
-                    coll.updateOne({
-                        year,
-                        department: dept,
-                        usn,
-                        semester: sem
-                    }, {
-                            $set: {
-                                result: record.result,
-                                revalUpdated: true
-                            }
-                        }, (err, result) => {
-                            if (err) throw err;
-
-                            console.log("Successfully updated record for USN " + usn);
-                        }
-                    );
-
-                    resolve({
-                        usn,
-                        status: "success",
                     });
                 });
             });
@@ -213,19 +215,12 @@ const updateReval = (postKey, usn, year, dept, sem) => {
 
 /**
  * Get the results (not revaluation) for a given USN.
- * @param {string} postKey -- The key to send with the POST request to fetch results.
  * @param {string} usn -- The last few digits in the USN, including the initial zeros.
  * @param {string} year -- A string version of the year part of the USN.
  * @param {string} dept -- An all-lowercase string of the department in the USN.
  * @param {string} sem -- A string representation of the semester.
  */
-const getResult = (postKey, usn, year, dept, sem) => {
-    // 3 for 1PE, 2 for year
-    let usnLen = 5 + dept.length;
-    let postData = {
-        [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
-    };
-
+const getResult = (usn, year, dept, sem) => {
     return new Promise((resolve, reject) => {
         mongo.connect("mongodb://localhost:27017").then((client) => {
             let db = client.db("results");
@@ -244,60 +239,70 @@ const getResult = (postKey, usn, year, dept, sem) => {
                     record.result.usn = "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
                     resolve(record.result);
                 } else {
-                    request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
-                        (err, res, body) => {
-                            if (err) throw err;
+                    getPostKey().then(postKey => {
+                        // 3 for 1PE, 2 for year
+                        let usnLen = 5 + dept.length;
+                        let postData = {
+                            [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
+                        };
 
-                            let {subjectResults, name} = scrapeResults(body, sem, usn);
-                            if (!subjectResults) {
-                                resolve({ error: true, usn });
-                                return;
+                        request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
+                            (err, res, body) => {
+                                console.log("here1");
+                                if (err) throw err;
+
+                                let { subjectResults, name } = scrapeResults(body, sem, usn);
+                                if (!subjectResults) {
+                                    resolve({ error: true, usn });
+                                    return;
+                                }
+
+                                let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
+                                gpa /= _.sumBy(subjectResults, ob => ob.credits);
+                                gpa = Math.round(gpa * 100) / 100;
+
+                                if (isNaN(gpa) || gpa == 0) {
+                                    console.log("Result fetch failed for USN " + usn);
+                                    resolve({ error: true, usn });
+                                    return;
+                                }
+
+                                resolve({
+                                    subjectResults,
+                                    gpa,
+                                    studentName: name,
+                                    usn: "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
+                                });
+
+                                let result = {
+                                    subjectResults,
+                                    gpa,
+                                    studentName: name,
+                                    usn
+                                };
+
+                                let dbRecord = {
+                                    result,
+                                    year: year.toString(),
+                                    department: dept.toLowerCase(),
+                                    usn: usn.toString(),
+                                    semester: sem
+                                };
+                                coll.insertOne(dbRecord).then(val => {
+                                    console.log("Successfully added new record to DB for USN" +
+                                        usn + ": " + val.insertedId);
+                                }).catch((err) => {
+                                    console.error("Failed to add record:");
+                                    console.error(err);
+                                });
                             }
+                        );
+                    });
 
-                            let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
-                            gpa /= _.sumBy(subjectResults, ob => ob.credits);
-                            gpa = Math.round(gpa * 100) / 100;
-
-                            if (isNaN(gpa) || gpa == 0) {
-                                console.log("Result fetch failed for USN " + usn);
-                                resolve({ error: true, usn });
-                                return;
-                            }
-
-                            resolve({
-                                subjectResults,
-                                gpa,
-                                studentName: name,
-                                usn: "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
-                            });
-
-                            let result = {
-                                subjectResults,
-                                gpa,
-                                studentName: name,
-                                usn
-                            };
-
-                            let dbRecord = {
-                                result,
-                                year: year.toString(),
-                                department: dept.toLowerCase(),
-                                usn: usn.toString(),
-                                semester: sem
-                            };
-                            coll.insertOne(dbRecord).then(val => {
-                                console.log("Successfully added new record to DB for USN" +
-                                    usn + ": " + val.insertedId);
-                            }).catch((err) => {
-                                console.error("Failed to add record:");
-                                console.error(err);
-                            });
-                        }
-                    );
                 }
             });
         });
     });
 };
 
-export { getGrade, getResult, updateReval, getPostKey };
+export { getGrade, getResult, updateReval };
