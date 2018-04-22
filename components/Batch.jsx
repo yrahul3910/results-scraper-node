@@ -4,6 +4,8 @@ import _ from "lodash";
 import PropTypes from "prop-types";
 import SideMenu from "./SideMenu.jsx";
 import ChartCard from "./ChartCard.jsx";
+import BarChartCard from "./BarChartCard.jsx";
+import randomColor from "randomcolor";
 import { Link } from "react-router-dom";
 import "../src/progress.css";
 
@@ -55,9 +57,11 @@ class Batch extends React.Component {
     render() {
         let subResults = this.state.results ? this.state.results.results.map(val => val.subjectResults) : null;
         // All the elements of subResults are arrays of the same length.
+        // subResults contains an array of each student's results.
 
         let chartsDivs;
         let failedDiv;
+        let barChartsDiv;
         if (subResults) {
             if (subResults.length == 0) {
                 chartsDivs = <div></div>;
@@ -69,6 +73,63 @@ class Batch extends React.Component {
                     </div>;
             } else {
                 let chartsData = [];
+                let subjectGrades = [];
+
+                /* First compute the data required to plot the grade-wise bar charts.
+                We first initialize a 2D array of dimensions 8 x n, where n is the
+                number of subjects. Then, for each subject, compute the count of each
+                grade. */
+                for (let i = 0; i < 8; ++i) {
+                    subjectGrades.push([]);
+                    for (let j = 0; j < subResults[0].length; ++j)
+                        subjectGrades[i].push(0);
+                }
+
+                let gradeIndexMap = {
+                    "S+": 0, "S": 1, "A": 2,
+                    "B": 3, "C": 4, "D": 5,
+                    "E": 6, "F": 7
+                };
+                let indexGradeMap = _.invert(gradeIndexMap);
+
+                for (let i = 0; i < subjectGrades.length; ++i) {
+                    // Iterate over the subjects
+                    subResults.map(x => x[i]).forEach(subObj => {
+                        let grade = this.getGrade(subObj.externalMarks);
+                        subjectGrades[gradeIndexMap[grade]][i]++;
+                    });
+                }
+
+                let barColors = [];
+                for (let i = 0; i < subResults[0].length; ++i)
+                    barColors.push(randomColor({
+                        format: "rgba",
+                        alpha: 0.4
+                    }));
+                let splitChartData = _.chunk(subjectGrades, 3);
+                barChartsDiv = (
+                    <div>
+                        <p style={{ fontSize: "18px", fontWeight: "bold" }}>
+                            Grade-wise results
+                        </p>
+                        {splitChartData.map((chunkSubGrades, i) =>
+                            <div className="row" style={{ marginTop: "15px" }} key={i}>
+                                {chunkSubGrades.map((gradeRow, index) =>
+                                    <div className="custom-col-30" key={index}>
+                                        <BarChartCard id={`bar${i}${index}`}
+                                            backgroundColor={barColors}
+                                            chartLabel={"Grade " + indexGradeMap[i * 3 + index]}
+                                            data={gradeRow}
+                                            subjectList={subResults[0].map(x => x.subjectCode)} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                    </div>
+                );
+
+                // Compute subject-wise grade counts for the pie charts and tables.
                 for (let i = 0; i < subResults[0].length; ++i) {
                     let curSubGradeCounts = _.countBy(subResults, val => {
                         if (val[i].result == "A")
@@ -112,11 +173,12 @@ class Batch extends React.Component {
                 });
             }
         } else {
-            // Show a spinning progress bar instead
+            // Show a progress bar instead
             chartsDivs = this.state.requestSent ?
                 <div style={{ marginLeft: "33.33%" }} className="loader8"></div> :
                 <div></div>;
             failedDiv = <div></div>;
+            barChartsDiv = <div></div>;
         }
 
         return (
@@ -166,6 +228,9 @@ class Batch extends React.Component {
                 </div>
                 <div className="row" style={{ marginTop: "15px" }}>
                     {failedDiv}
+                </div>
+                <div className="row" style={{ marginTop: "15px" }}>
+                    {barChartsDiv}
                 </div>
             </div>
         );
