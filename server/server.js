@@ -3,6 +3,7 @@ import express from "express";
 import compression from "compression";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import chalk from "chalk";
 import helmet from "helmet";
 import path from "path";
 import open from "open";
@@ -24,15 +25,25 @@ app.use(helmet());
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser({ extended: true }));
+
+console.log(chalk.cyan("Starting server in " + process.argv[2] + " mode."));
+
+if (process.argv[2] == "production")
+    app.use(express.static("dist"));
 app.use(express.static(__dirname + "/public"));
-app.use(require("webpack-dev-middleware")(compiler, {
-    noInfo: true,
-    publicPath: config.output.publicPath
-}));
+
+if (process.argv[2] == "development")
+    app.use(require("webpack-dev-middleware")(compiler, {
+        noInfo: true,
+        publicPath: config.output.publicPath
+    }));
 
 // Request handling begins here
 app.get("/*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../src/index.html"));
+    if (process.argv[2] == "development")
+        res.sendFile(path.join(__dirname, "../src/index.html"));
+    else
+        res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
 /**

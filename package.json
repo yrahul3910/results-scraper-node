@@ -4,10 +4,13 @@
   "version": "0.0.0",
   "scripts": {
     "start": "npm-run-all --parallel server lint:watch",
-    "server": "babel-node server/server.js --presets stage-3",
+    "server": "babel-node server/server.js development",
     "security-check": "nsp check",
     "lint": "esw",
-    "lint:watch": "npm run lint -- --watch"
+    "lint:watch": "npm run lint -- --watch",
+    "prebuild": "rimraf ./dist && mkdir dist",
+    "build": "babel-node build.js",
+    "postbuild": "babel-node server/server.js production"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -17,6 +20,7 @@
     "babel-preset-react": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
     "bootstrap": "3.3.7",
+    "chalk": "^2.4.0",
     "chart.js": "2.7.2",
     "cheerio": "^1.0.0-rc.2",
     "compression": "^1.7.1",
@@ -27,7 +31,8 @@
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-react": "^7.5.1",
     "express": "4.16.3",
-    "html-webpack-plugin": "^2.30.1",
+    "extract-text-webpack-plugin": "^3.0.2",
+    "html-webpack-plugin": "^3.2.0",
     "jquery": "3.2.1",
     "lodash": "4.17.5",
     "mongodb": "3.0.5",
@@ -39,8 +44,10 @@
     "react-dom": "16.2.0",
     "react-router-dom": "4.1.1",
     "request": "^2.85.0",
+    "rimraf": "^2.6.2",
     "style-loader": "0.18.2",
-    "webpack-cli": "^2.0.9"
+    "webpack-cli": "^2.0.9",
+    "webpack-md5-hash": "^0.0.6"
   },
   "dependencies": {
     "body-parser": "^1.18.2",
