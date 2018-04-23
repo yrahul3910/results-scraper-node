@@ -107,11 +107,19 @@ class Batch extends React.Component {
                         alpha: 0.4
                     }));
                 let splitChartData = _.chunk(subjectGrades, 3);
+
+                /* Display the title, subject code to subject name mapping, and
+                the grade-wise bar charts. */
                 barChartsDiv = (
                     <div>
                         <p style={{ fontSize: "18px", fontWeight: "bold" }}>
                             Grade-wise results
                         </p>
+
+                        {subResults[0].map(sub =>
+                            <p><strong>{sub.subjectCode}: </strong>{sub.subjectName}</p>
+                        )}
+
                         {splitChartData.map((chunkSubGrades, i) =>
                             <div className="row" style={{ marginTop: "15px" }} key={i}>
                                 {chunkSubGrades.map((gradeRow, index) =>
