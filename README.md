@@ -7,6 +7,7 @@ A website to scrape CBCS results from VTU, and cache in a database, with support
 * **Printable report generation**: For batch results, a printable report with each student's results is generated.
 * **Multiple charts in batch results**: In batch mode, pie charts are shown for each subject, showing how many students got each grade. Bar charts are also shown, showing which subject got how many of what grade.
 * **Updating revaluation results**: Once revaluation results are out, they can be scraped in batch, and the database is updated.
+* **Student-wise results**: You can get all the semester results of a student.
 
 # Setup
 To setup this project in your local machine, read this section.
@@ -33,6 +34,7 @@ You must have the following installed and set up.
 * `MainPage`: The home page.
 * `Report`: The printable report generated for batch results. Used in the `Batch` component.
 * `SideMenu`: The side menu with navigation links.
+* `StudentResults`: The component rendered for fetching all semesters' results for a student.
 * `UpdateReval`: The component rendered for updating the revaluation results in the database.
 
 ## MongoDB Structure

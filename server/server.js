@@ -8,11 +8,16 @@ import helmet from "helmet";
 import path from "path";
 import open from "open";
 import { Promise } from "es6-promise";
-import { getResult, updateReval } from "./utils";
+import { getResult, getStudentResult, updateReval } from "./utils";
 
 // Webpack configuration
 import webpack from "webpack";
-import config from "../webpack.config";
+
+let webpackConfigFile = {
+    "development": "../webpack.config",
+    "production": "../webpack.config.prod"
+};
+let config = require(webpackConfigFile[process.argv[2]]).default;
 
 // Express setup
 const port = 8000;
@@ -68,6 +73,27 @@ app.post("/api/Results/Individual", (req, res) => {
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify(result));
         });
+});
+
+/**
+ * Student-wise results
+ * Request body parameters:
+ *  {number} usn -- The usn to get results for.
+ *  {number} year -- The year in the usn.
+ *  {string} department -- The department code.
+ */
+app.post("/api/Results/Student", async (req, res) => {
+    let { usn, year, department } = req.body;
+
+    let result = await getStudentResult(usn.toString(), year.toString(), department.toLowerCase());
+    if (result.error) {
+        res.status(400);
+        res.end();
+        return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
 });
 
 /**

@@ -305,4 +305,24 @@ const getResult = (usn, year, dept, sem) => {
     });
 };
 
-export { getGrade, getResult, updateReval };
+/**
+ * Get all semester results of a student from the database.
+ * @param {string} usn -- The last few digits in the USN, including the initial zeros.
+ * @param {string} year -- A string representation of the year part of the USN.
+ * @param {string} dept -- A string representation of the semester.
+ */
+const getStudentResult = async (usn, year, dept) => {
+    let client = await mongo.connect("mongodb://localhost:27017");
+    let db = client.db("results");
+    let coll = db.collection("results");
+    let results = await coll.find({
+        usn,
+        year,
+        department: dept
+    }).toArray();
+
+    if (!results.length) return { error: true };
+    else return results;
+};
+
+export { getGrade, getResult, getStudentResult, updateReval };

@@ -33,6 +33,9 @@ class SideMenu extends React.Component {
                                 <NavLink to={"/update"} exact activeClassName='active'>
                                     Update Reval Results
                                 </NavLink>
+                                <NavLink to={"/student"} exact activeClassName='active'>
+                                    Student Results
+                                </NavLink>
                             </li>
                         </ul>
                     </div>

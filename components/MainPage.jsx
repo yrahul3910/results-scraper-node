@@ -8,7 +8,7 @@ class MainPage extends React.Component {
                 <SideMenu />
                 <div style={{ marginLeft: "25vw", marginTop: "10vh", marginRight: "10vw" }}>
                     <h3>
-                        Welcome to the PESIT South Campus result scraper
+                        Welcome to the PESIT South Campus Result Scraper
                     </h3>
                     <div style={{ marginTop: "10vh" }}>
                         <span style={{ borderWidth: "2px", borderRadius: "50%",
@@ -41,6 +41,18 @@ class MainPage extends React.Component {
                         semester for the student. The results of updating the database are shown in
                         a table. Note that to update the database, the USN results must be scraped
                         first, using either individual or batch results.</p>
+                    </div>
+                    <div style={{ marginTop: "10vh" }}>
+                        <span style={{ borderWidth: "2px", borderRadius: "50%",
+                            padding: "5px 9px", borderStyle: "solid", marginRight: "15px"}}>
+                            4
+                        </span>
+                        <span><strong>Student-wise results</strong></span>
+                        <p style={{ marginTop: "15px", marginLeft: "46px" }}>
+                            To obtain all the semesters' results for a student, go to <em>Student Results</em>,
+                            and enter the USN. Note that for this to work, the student's results must have been
+                            scraped for at least one semester.
+                        </p>
                     </div>
                 </div>
             </React.Fragment>
