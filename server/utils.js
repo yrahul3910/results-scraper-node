@@ -248,7 +248,6 @@ const getResult = (usn, year, dept, sem) => {
 
                         request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
                             (err, res, body) => {
-                                console.log("here1");
                                 if (err) throw err;
 
                                 let { subjectResults, name } = scrapeResults(body, sem, usn);
