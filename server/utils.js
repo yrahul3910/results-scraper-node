@@ -88,7 +88,7 @@ const getGrade = marks => {
  */
 const getPostKey = () => {
     return new Promise(resolve => {
-        request("http://results.vtu.ac.in/vitaviresultcbcs/index.php", (err, res, html) => {
+        request("http://results.vtu.ac.in/vitaviresultcbcs2018/index.php", (err, res, html) => {
             if (err) throw err;
 
             const $ = cheerio.load(html);
@@ -144,7 +144,7 @@ const updateReval = (usn, year, dept, sem) => {
                     };
 
                     request.post({
-                        url: "http://results.vtu.ac.in/vitavirevalresultcbcs/resultpage.php",
+                        url: "http://results.vtu.ac.in/vitavirevalresultcbcs2018/resultpage.php",
                         form: postData
                     }, (err, res, body) => {
                         if (err) throw err;
@@ -243,10 +243,17 @@ const getResult = (usn, year, dept, sem) => {
                         // 3 for 1PE, 2 for year
                         let usnLen = 5 + dept.length;
                         let postData = {
-                            [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0")
+                            [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0"),
+                            // TODO: Figure out how to get this token
+                            token: 'YWxvVVY4V1Eyekk1M0JRcW9aeUZoY1g2ZVpHcDNzL1hUcG5QWStXdkhkQkNscUVEYjJwNW9ZTEJZNEVkSmV3bmxJeUE5SGNuNlIwTGhJWWlTdU02emc9PTo6SKnisduySDJYiM5gGveu9Q==',
+                            current_url: 'http://results.vtu.ac.in/vitaviresultcbcs2018/index.php'
                         };
 
-                        request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs/resultpage.php", form: postData },
+                        request.post({ url: "http://results.vtu.ac.in/vitaviresultcbcs2018/resultpage.php", 
+                            form: postData,
+                            header: {
+                                'Cookie': 'PHPSESSID=ei9qili4j1orj3iur6edfd2uq0'
+                            } },
                             (err, res, body) => {
                                 if (err) throw err;
 
