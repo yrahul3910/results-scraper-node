@@ -19,6 +19,9 @@ class IndividualTable extends React.Component {
 
         return this.props.tableData ? (
             <table className="table table-hover">
+                <caption style={{ fontWeight: "bold", textAlign: "center", color: "black" }}>
+                    {"Name: " + this.props.name}
+                </caption>
                 <thead>
                     <tr>
                         <th>Subject Code</th>
@@ -37,7 +40,8 @@ class IndividualTable extends React.Component {
 }
 
 IndividualTable.propTypes = {
-    tableData: PropTypes.array
+    tableData: PropTypes.array,
+    name: PropTypes.string
 };
 
 export default IndividualTable;

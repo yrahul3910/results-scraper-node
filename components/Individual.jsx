@@ -81,7 +81,8 @@ class Individual extends React.Component {
                 </div>
                 <div className="row" style={{ marginTop: "15px" }}>
                     <div className="col-md-8 col-md-offset-2">
-                        <IndividualTable tableData={this.state.results? this.state.results.subjectResults : null} />
+                        <IndividualTable tableData={this.state.results? this.state.results.subjectResults : null}
+                            name={this.state.results ? this.state.results.studentName : null} />
                     </div>
                 </div>
                 {gpaDiv}
