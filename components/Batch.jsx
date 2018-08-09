@@ -116,8 +116,8 @@ class Batch extends React.Component {
                             Grade-wise results
                         </p>
 
-                        {subResults[0].map(sub =>
-                            <p><strong>{sub.subjectCode}: </strong>{sub.subjectName}</p>
+                        {subResults[0].map((sub, i) =>
+                            <p key={i}><strong>{sub.subjectCode}: </strong>{sub.subjectName}</p>
                         )}
 
                         {splitChartData.map((chunkSubGrades, i) =>

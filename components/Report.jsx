@@ -2,53 +2,55 @@
 import PropTypes from "prop-types";
 
 class Report extends React.Component {
+    getFormattedSubjectCode(x) {
+        let rgx = /(\d+)([A-Z]+)(\d+)/;
+        let matches = x.match(rgx);
+        if (matches[2].length == 2 && matches[3].length == 3)
+            return x.substr(0, x.length - 1) + "x";
+        return x;
+    }
+
     render() {
         let resultList = this.props.data.results;
+
+        let subCodes = resultList[0].subjectResults.map(res => 
+            this.getFormattedSubjectCode(res.subjectCode));
+
+            // Table headers
+        let headers = subCodes.map(x => this.getFormattedSubjectCode(x))
+                            .map((x, i) => <th key={i}>{x}</th>);
+
         let rows = resultList.map((val, i) => {
+            // val represents one student's results.
             let name = val.studentName;
             let gpa = val.gpa;
-            let subjectResults = val.subjectResults.map((sub, j) =>
-                <td key={j}>{sub.externalMarks}</td>
-            );
+            let curCodes = val.subjectResults.map(sub => 
+                this.getFormattedSubjectCode(sub.subjectCode));
+
+            let marks = [];
+            for (let code of subCodes) {
+                let index = curCodes.indexOf(code);
+                marks.push(<td>{val.subjectResults[index].externalMarks}</td>);
+            }
             return (
                 <tr key={i}>
                     <td>{val.usn}</td>
                     <td>{name}</td>
-                    {subjectResults}
+                    {marks}
                     <td>{gpa}</td>
                 </tr>
             );
         });
 
-        let subjectList = resultList[0].subjectResults.map((res, i) => {
-            if (res.credits == 3)
-                return <p key={i}>
-                    <strong>{res.subjectCode.substr(0, res.subjectCode.length - 1) + "x: "}</strong>ELECTIVE
-                </p>;
-            else
-                return <p key={i}><strong>{res.subjectCode + ": "}</strong>{res.subjectName}</p>;
-        });
-
         return (
             <div className="container-fluid">
-                <div className="row">
-                    <h3>Subject List:</h3>
-                    {subjectList}
-                </div>
                 <div className="row">
                     <table className="table table-hover">
                         <thead>
                             <tr>
                                 <th>USN</th>
-                                <th>NAME</th>
-                                <th>SUB 1</th>
-                                <th>SUB 2</th>
-                                <th>SUB 3</th>
-                                <th>SUB 4</th>
-                                <th>SUB 5</th>
-                                <th>SUB 6</th>
-                                <th>SUB 7</th>
-                                <th>SUB 8</th>
+                                <th>Name</th>
+                                {headers}
                                 <th>GPA</th>
                             </tr>
                         </thead>
