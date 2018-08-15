@@ -7,6 +7,7 @@ import ChartCard from "./ChartCard.jsx";
 import BarChartCard from "./BarChartCard.jsx";
 import randomColor from "randomcolor";
 import { Link } from "react-router-dom";
+import { getFormattedSubjectCode } from "../src/utils";
 import "../src/progress.css";
 
 class Batch extends React.Component {
@@ -77,13 +78,9 @@ class Batch extends React.Component {
 
                 /* First compute the data required to plot the grade-wise bar charts.
                 We first initialize a 2D array of dimensions 8 x n, where n is the
-                number of subjects. Then, for each subject, compute the count of each
-                grade. */
-                for (let i = 0; i < 8; ++i) {
-                    subjectGrades.push([]);
-                    for (let j = 0; j < subResults[0].length; ++j)
-                        subjectGrades[i].push(0);
-                }
+                number of subjects. 8 because there are 8 possible grades. */
+                for (let i = 0; i < 8; ++i) 
+                    subjectGrades.push({});
 
                 let gradeIndexMap = {
                     "S+": 0, "S": 1, "A": 2,
@@ -92,12 +89,21 @@ class Batch extends React.Component {
                 };
                 let indexGradeMap = _.invert(gradeIndexMap);
 
-                for (let i = 0; i < subjectGrades.length; ++i) {
-                    // Iterate over the subjects
-                    subResults.map(x => x[i]).forEach(subObj => {
-                        let grade = this.getGrade(subObj.externalMarks);
-                        subjectGrades[gradeIndexMap[grade]][i]++;
-                    });
+                /* Populate subjectGrades */
+                for (let i = 0; i < subResults.length; ++i) {
+                    for (let subject of subResults[i]) {
+                        /* First get the subject code, and generalize if it's an
+                        elective. */
+                        let code = getFormattedSubjectCode(subject.subjectCode);
+                        
+                        // Next, compute the grade and store it in the right map.
+                        let grade = this.getGrade(subject.externalMarks);
+
+                        if (subjectGrades[gradeIndexMap[grade]].hasOwnProperty(code))
+                            subjectGrades[gradeIndexMap[grade]][code]++;
+                        else
+                            subjectGrades[gradeIndexMap[grade]][code] = 1;
+                    }
                 }
 
                 let barColors = [];
@@ -107,7 +113,7 @@ class Batch extends React.Component {
                         alpha: 0.4
                     }));
                 let splitChartData = _.chunk(subjectGrades, 3);
-
+                console.log(subjectGrades);
                 /* Display the title, subject code to subject name mapping, and
                 the grade-wise bar charts. */
                 barChartsDiv = (
@@ -117,7 +123,10 @@ class Batch extends React.Component {
                         </p>
 
                         {subResults[0].map((sub, i) =>
-                            <p key={i}><strong>{sub.subjectCode}: </strong>{sub.subjectName}</p>
+                            <p key={i}>
+                                <strong>{getFormattedSubjectCode(sub.subjectCode)}: </strong>
+                                {sub.subjectName}
+                            </p>
                         )}
 
                         {splitChartData.map((chunkSubGrades, i) =>
@@ -127,8 +136,8 @@ class Batch extends React.Component {
                                         <BarChartCard id={`bar${i}${index}`}
                                             backgroundColor={barColors}
                                             chartLabel={"Grade " + indexGradeMap[i * 3 + index]}
-                                            data={gradeRow}
-                                            subjectList={subResults[0].map(x => x.subjectCode)} />
+                                            data={Object.values(gradeRow)}
+                                            subjectList={Object.keys(gradeRow)} />
                                     </div>
                                 )}
                             </div>

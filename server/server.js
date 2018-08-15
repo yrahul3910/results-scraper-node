@@ -31,7 +31,7 @@ app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser({ extended: true }));
 
-console.log(chalk.cyan("Starting server in " + process.argv[2] + " mode."));
+console.log(chalk.cyan("Starting server in " + process.argv[2] + " mode.")); // eslint-disable-line no-console
 
 if (process.argv[2] == "production")
     app.use(express.static("dist"));
@@ -64,15 +64,16 @@ app.post("/api/Results/Individual", (req, res) => {
 
     getResult(startUSN.toString(), year.toString(), department.toLowerCase(),
         semester).then((result) => {
-            if (result.gpa == 0 || result.error) {
-                res.status(400);
-                res.end();
-                return;
-            }
+            
+        if (result.gpa == 0 || result.error) {
+            res.status(400);
+            res.end();
+            return;
+        }
 
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify(result));
-        });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+    });
 });
 
 /**

@@ -67,7 +67,7 @@ const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
     } catch (e) {
         return false;
     }
-}
+};
 
 /**
  * Returns the corresponding grade for the marks given.
@@ -110,7 +110,7 @@ const getToken = () => {
             resolve($("input[type='hidden']").first().attr("value"));
         });
     });
-}
+};
 
 /**
  * Checks revaluation results, and updates in the database if necessary.
@@ -205,16 +205,15 @@ const updateReval = (usn, year, dept, sem) => {
                             usn,
                             semester: sem
                         }, {
-                                $set: {
-                                    result: record.result,
-                                    revalUpdated: true
-                                }
-                            }, (err, result) => {
-                                if (err) throw err;
-
-                                console.log("Successfully updated record for USN " + usn);
+                            $set: {
+                                result: record.result,
+                                revalUpdated: true
                             }
-                        );
+                        }, err => {
+                            if (err) throw err;
+
+                            console.log("Successfully updated record for USN " + usn); // eslint-disable-line no-console
+                        });
 
                         resolve({
                             usn,
@@ -225,8 +224,7 @@ const updateReval = (usn, year, dept, sem) => {
             });
         });
     });
-
-}
+};
 
 /**
  * Get the results (not revaluation) for a given USN.
@@ -236,7 +234,7 @@ const updateReval = (usn, year, dept, sem) => {
  * @param {string} sem -- A string representation of the semester.
  */
 const getResult = (usn, year, dept, sem) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         mongo.connect("mongodb://localhost:27017").then((client) => {
             let db = client.db("results");
             let coll = db.collection("results");
@@ -250,8 +248,8 @@ const getResult = (usn, year, dept, sem) => {
                 if (err) throw err;
 
                 if (record) {
-                    console.log("Using cached result: " + record._id);
-                    record.result.usn = "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
+                    console.log("Using cached result: " + record._id); // eslint-disable-line no-console
+                    record.result.usn = "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0");
                     resolve(record.result);
                 } else {
                     getPostKey().then(postKey => {
@@ -261,7 +259,7 @@ const getResult = (usn, year, dept, sem) => {
                             let postData = {
                                 [postKey]: "1PE" + year.toString() + dept + usn.toString().padStart(10 - usnLen, "0"),
                                 token,
-                                current_url: 'http://results.vtu.ac.in/vitaviresultcbcs2018/index.php'
+                                current_url: "http://results.vtu.ac.in/vitaviresultcbcs2018/index.php"
                             };
 
                             request.post({
@@ -269,58 +267,56 @@ const getResult = (usn, year, dept, sem) => {
                                 form: postData,
                                 header: {
                                     // TODO: Figure out how to get this cookie from the response
-                                    'Cookie': 'PHPSESSID=71ob4p8b7dlrqb8ehtortcn5c2'
+                                    "Cookie": "PHPSESSID=71ob4p8b7dlrqb8ehtortcn5c2"
                                 }
-                            },
-                                (err, res, body) => {
-                                    if (err) throw err;
+                            }, (err, res, body) => {
+                                if (err) throw err;
 
-                                    let { subjectResults, name } = scrapeResults(body, sem, usn);
-                                    if (!subjectResults) {
-                                        resolve({ error: true, usn });
-                                        return;
-                                    }
-
-                                    let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
-                                    gpa /= _.sumBy(subjectResults, ob => ob.credits);
-                                    gpa = Math.round(gpa * 100) / 100;
-
-                                    if (isNaN(gpa) || gpa == 0) {
-                                        console.log("Result fetch failed for USN " + usn);
-                                        resolve({ error: true, usn });
-                                        return;
-                                    }
-
-                                    resolve({
-                                        subjectResults,
-                                        gpa,
-                                        studentName: name,
-                                        usn: "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
-                                    });
-
-                                    let result = {
-                                        subjectResults,
-                                        gpa,
-                                        studentName: name,
-                                        usn
-                                    };
-
-                                    let dbRecord = {
-                                        result,
-                                        year: year.toString(),
-                                        department: dept.toLowerCase(),
-                                        usn: usn.toString(),
-                                        semester: sem
-                                    };
-                                    coll.insertOne(dbRecord).then(val => {
-                                        console.log("Successfully added new record to DB for USN" +
-                                            usn + ": " + val.insertedId);
-                                    }).catch((err) => {
-                                        console.error("Failed to add record:");
-                                        console.error(err);
-                                    });
+                                let { subjectResults, name } = scrapeResults(body, sem, usn);
+                                if (!subjectResults) {
+                                    resolve({ error: true, usn });
+                                    return;
                                 }
-                            );
+
+                                let gpa = _.sumBy(subjectResults, ob => getGrade(ob.externalMarks) * ob.credits);
+                                gpa /= _.sumBy(subjectResults, ob => ob.credits);
+                                gpa = Math.round(gpa * 100) / 100;
+
+                                if (isNaN(gpa) || gpa == 0) {
+                                    console.log("Result fetch failed for USN " + usn); // eslint-disable-line no-console
+                                    resolve({ error: true, usn });
+                                    return;
+                                }
+
+                                resolve({
+                                    subjectResults,
+                                    gpa,
+                                    studentName: name,
+                                    usn: "1PE" + year.toString() + dept.toUpperCase() + usn.toString().padStart(3, "0")
+                                });
+
+                                let result = {
+                                    subjectResults,
+                                    gpa,
+                                    studentName: name,
+                                    usn
+                                };
+
+                                let dbRecord = {
+                                    result,
+                                    year: year.toString(),
+                                    department: dept.toLowerCase(),
+                                    usn: usn.toString(),
+                                    semester: sem
+                                };
+                                coll.insertOne(dbRecord).then(val => {
+                                    console.log("Successfully added new record to DB for USN" + // eslint-disable-line no-console
+                                        usn + ": " + val.insertedId); 
+                                }).catch((err) => {
+                                    console.error("Failed to add record:"); // eslint-disable-line no-console
+                                    console.error(err); // eslint-disable-line no-console
+                                });
+                            });
                         });
                     });
 

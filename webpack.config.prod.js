@@ -38,7 +38,7 @@ export default {
             inject: true
         }),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production')
+            "process.env.NODE_ENV": JSON.stringify("production")
         }),
         // Minify JS
         new webpack.optimize.UglifyJsPlugin()
@@ -56,7 +56,7 @@ export default {
                 test: /\.(js|jsx)$/,
                 exclude: /node_modules/,
                 use: [
-                    'babel-loader'
+                    "babel-loader"
                 ]
             }
         ]

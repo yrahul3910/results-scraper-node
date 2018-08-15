@@ -8,7 +8,7 @@ class MainPage extends React.Component {
                 <SideMenu />
                 <div style={{ marginLeft: "25vw", marginTop: "10vh", marginRight: "10vw" }}>
                     <h3>
-                        Welcome to the PESIT South Campus Result Scraper
+                        Welcome to the PES University, Electronic City result scraper
                     </h3>
                     <div style={{ marginTop: "10vh" }}>
                         <span style={{ borderWidth: "2px", borderRadius: "50%",
