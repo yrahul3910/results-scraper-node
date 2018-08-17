@@ -46,7 +46,7 @@ const scrapeResults = (body, sem, usn, marksFn = defaultMarksFunction) => {
                 cells.eq(1).text().includes("LABORATORY") ||
                 cells.eq(1).text().endsWith("LAB."))
                 subjectCredits = 2;
-            else if (cells.eq(0).text().length == 7)
+            else if (cells.eq(0).text().length == 7 && matches[1].length == 3)
                 subjectCredits = 3;
             else subjectCredits = 4;
 

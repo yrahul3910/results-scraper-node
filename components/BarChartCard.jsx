@@ -5,7 +5,6 @@ import Chart from "chart.js";
 class BarChartCard extends React.Component {
     constructor(props) {
         super(props);
-        console.log(props);
     }
 
     componentDidMount() {

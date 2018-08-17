@@ -4,7 +4,7 @@ import _ from "lodash";
 import PropTypes from "prop-types";
 import SideMenu from "./SideMenu.jsx";
 import ChartCard from "./ChartCard.jsx";
-import BarChartCard from "./BarChartCard.jsx";
+import BarCharts from "./BarCharts.jsx";
 import randomColor from "randomcolor";
 import { Link } from "react-router-dom";
 import { getFormattedSubjectCode } from "../src/utils";
@@ -63,6 +63,8 @@ class Batch extends React.Component {
         let chartsDivs;
         let failedDiv;
         let barChartsDiv;
+        let subCodesDiv;
+
         if (subResults) {
             if (subResults.length == 0) {
                 chartsDivs = <div></div>;
@@ -73,19 +75,19 @@ class Batch extends React.Component {
                         </p>
                     </div>;
             } else {
-                let chartsData = [];
+                let chartsData = {};
                 let subjectGrades = [];
 
                 /* First compute the data required to plot the grade-wise bar charts.
                 We first initialize a 2D array of dimensions 8 x n, where n is the
-                number of subjects. 8 because there are 8 possible grades. */
-                for (let i = 0; i < 8; ++i) 
+                number of subjects. 9 because there are 8 possible grades, and absent. */
+                for (let i = 0; i < 9; ++i)
                     subjectGrades.push({});
 
                 let gradeIndexMap = {
                     "S+": 0, "S": 1, "A": 2,
                     "B": 3, "C": 4, "D": 5,
-                    "E": 6, "F": 7
+                    "E": 6, "F": 7, "AB": 8
                 };
                 let indexGradeMap = _.invert(gradeIndexMap);
 
@@ -95,14 +97,39 @@ class Batch extends React.Component {
                         /* First get the subject code, and generalize if it's an
                         elective. */
                         let code = getFormattedSubjectCode(subject.subjectCode);
-                        
+
                         // Next, compute the grade and store it in the right map.
-                        let grade = this.getGrade(subject.externalMarks);
+                        let grade;
+                        if (subject.result == "A") {
+                            console.log(subject.subjectCode + " " + this.state.results.results[i].usn + " AB");
+                            grade = "AB";
+                        }
+                        else if (subject.result == "F") {
+                            console.log(subject.subjectCode + " " + this.state.results.results[i].usn + " F");
+                            grade = "F";
+                        }
+                        else 
+                            grade = this.getGrade(subject.externalMarks);
 
                         if (subjectGrades[gradeIndexMap[grade]].hasOwnProperty(code))
                             subjectGrades[gradeIndexMap[grade]][code]++;
                         else
                             subjectGrades[gradeIndexMap[grade]][code] = 1;
+                    }
+                }
+
+                /* Now use subjectGrades to build the data for the pie charts
+                subjectGrades mapped (gradeIndex x subjectCode) --> count, 
+                chartsData should map (subjectCode x gradeIndex) --> count. */
+                for (let i = 0; i < 9; ++i) {
+                    for (let subject of Object.keys(subjectGrades[i])) {
+                        if (chartsData.hasOwnProperty(subject))
+                            chartsData[subject][i] = subjectGrades[i][subject];
+                        else {
+                            chartsData[subject] = new Array(9);
+                            chartsData[subject].fill(0);
+                            chartsData[subject][i] = subjectGrades[i][subject];
+                        }
                     }
                 }
 
@@ -112,50 +139,12 @@ class Batch extends React.Component {
                         format: "rgba",
                         alpha: 0.4
                     }));
-                let splitChartData = _.chunk(subjectGrades, 3);
-                console.log(subjectGrades);
-                /* Display the title, subject code to subject name mapping, and
-                the grade-wise bar charts. */
-                barChartsDiv = (
-                    <div>
-                        <p style={{ fontSize: "18px", fontWeight: "bold" }}>
-                            Grade-wise results
-                        </p>
-
-                        {subResults[0].map((sub, i) =>
-                            <p key={i}>
-                                <strong>{getFormattedSubjectCode(sub.subjectCode)}: </strong>
-                                {sub.subjectName}
-                            </p>
-                        )}
-
-                        {splitChartData.map((chunkSubGrades, i) =>
-                            <div className="row" style={{ marginTop: "15px" }} key={i}>
-                                {chunkSubGrades.map((gradeRow, index) =>
-                                    <div className="custom-col-30" key={index}>
-                                        <BarChartCard id={`bar${i}${index}`}
-                                            backgroundColor={barColors}
-                                            chartLabel={"Grade " + indexGradeMap[i * 3 + index]}
-                                            data={Object.values(gradeRow)}
-                                            subjectList={Object.keys(gradeRow)} />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                    </div>
-                );
-
-                // Compute subject-wise grade counts for the pie charts and tables.
-                for (let i = 0; i < subResults[0].length; ++i) {
-                    let curSubGradeCounts = _.countBy(subResults, val => {
-                        if (val[i].result == "A")
-                            return "AB";
-                        return this.getGrade(val[i].externalMarks);
-                    });
-
-                    chartsData.push(curSubGradeCounts);
-                }
+                
+                barChartsDiv = 
+                    <BarCharts subjectGrades={subjectGrades}
+                        subResults={subResults}
+                        barColors={barColors}
+                        indexGradeMap={indexGradeMap} />;                
 
                 failedDiv = (
                     <div>
@@ -172,22 +161,23 @@ class Batch extends React.Component {
                     </div>
                 );
 
-                chartsDivs = chartsData.map((dataMap, index) => {
-                    let grades = ["S+", "S", "A", "B", "C", "D", "E", "F", "AB"];
-                    let keys = Object.keys(chartsData[index]);
-                    let missingKeys = _.difference(grades, keys);
+                chartsDivs = Object.keys(chartsData).map((subCode, index) => 
+                    <ChartCard key={index}
+                        title={subCode}
+                        id={subCode}
+                        chartLabels={Object.keys(gradeIndexMap)}
+                        chartFrequencies={chartsData[subCode]} />
+                );
 
-                    for (let key of missingKeys)
-                        chartsData[index][key] = 0;
-
-                    return (
-                        <ChartCard key={index}
-                            title={subResults[0][index].subjectName}
-                            id={subResults[0][index].subjectCode}
-                            chartLabels={grades}
-                            chartFrequencies={grades.map(val => chartsData[index][val])} />
-                    );
-                });
+                subCodesDiv = 
+                    <div>
+                        {subResults[0].map((sub, i) =>
+                            <p key={i}>
+                                <strong>{getFormattedSubjectCode(sub.subjectCode)}: </strong>
+                                {sub.subjectName}
+                            </p>
+                        )}
+                    </div>
             }
         } else {
             // Show a progress bar instead
@@ -196,6 +186,7 @@ class Batch extends React.Component {
                 <div></div>;
             failedDiv = <div></div>;
             barChartsDiv = <div></div>;
+            subCodesDiv = <div></div>;
         }
 
         return (
@@ -239,6 +230,9 @@ class Batch extends React.Component {
                     <div className="col-md-4 col-md-offset-4">
                         <button onClick={this.click} className="btn btn-success">Get Results</button>
                     </div>
+                </div>
+                <div style={{ marginTop: "15px" }}>
+                    {subCodesDiv}
                 </div>
                 <div style={{ marginTop: "15px" }}>
                     {chartsDivs}
